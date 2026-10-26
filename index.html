@@ -1,0 +1,298 @@
+<!doctype html>
+<html lang="it">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="theme-color" content="#173a32">
+    <title>Habitat | Social studio</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Playfair+Display:wght@500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="styles.css?v=meta-oauth">
+  </head>
+  <body>
+    <div class="app-shell">
+      <aside class="sidebar" aria-label="Navigazione principale">
+        <a class="wordmark" href="#overview" aria-label="Habitat, panoramica">
+          <span class="wordmark-mark" aria-hidden="true">b.</span>
+          <span>habitat</span>
+        </a>
+
+        <div class="workspace-label">SOCIAL STUDIO</div>
+        <nav class="primary-nav">
+          <button class="nav-link" data-page="appointments">
+            <span class="nav-glyph glyph-calendar" aria-hidden="true"></span>
+            <span>Appuntamenti</span>
+            <span class="nav-count" id="appointment-count">0</span>
+          </button>
+          <button class="nav-link is-active" data-page="overview" aria-current="page">
+            <span class="nav-glyph glyph-overview" aria-hidden="true"></span>
+            <span>Panoramica</span>
+          </button>
+          <button class="nav-link" data-page="analysis">
+            <span class="nav-glyph glyph-analysis" aria-hidden="true"></span>
+            <span>Analisi</span>
+          </button>
+          <button class="nav-link" data-page="content-calendar">
+            <span class="nav-glyph glyph-content" aria-hidden="true"></span>
+            <span>Contenuti</span>
+            <span class="nav-count" id="content-count">0</span>
+          </button>
+        </nav>
+
+        <div class="sidebar-bottom">
+          <div class="sidebar-rule"></div>
+          <p class="sidebar-note">Il tuo spazio di lavoro<br>per i social.</p>
+          <div class="user-chip">
+            <span class="user-initials" aria-hidden="true">BS</span>
+            <span><strong>Habitat Studio</strong><small>Team social</small></span>
+            <span class="user-menu-mark" aria-hidden="true">···</span>
+          </div>
+        </div>
+      </aside>
+
+      <main class="main-shell">
+        <header class="topbar">
+          <div class="client-control" id="client-control">
+            <label for="client-select">Profilo cliente</label>
+            <div class="select-wrap client-select-wrap">
+              <select id="client-select" aria-label="Seleziona profilo cliente">
+                <option value="x">Cliente X</option>
+                <option value="y">Cliente Y</option>
+                <option value="w">Cliente W</option>
+                <option value="z">Cliente Z</option>
+              </select>
+              <span class="select-chevron" aria-hidden="true"></span>
+            </div>
+          </div>
+          <div class="topbar-right">
+            <div class="meta-integration">
+              <span class="meta-status" id="meta-status" role="status" aria-live="polite">Meta non collegato</span>
+              <button type="button" class="button button-dark meta-button" id="meta-connect">Collega Meta</button>
+              <button type="button" class="button button-outline meta-button" id="meta-disconnect" hidden>Scollega</button>
+            </div>
+            <span class="today-label" id="today-label"></span>
+            <span class="demo-label"><span class="demo-dot" aria-hidden="true"></span>Dati demo</span>
+          </div>
+        </header>
+
+        <div class="content-wrap">
+          <section class="page-view is-visible" id="page-overview" aria-labelledby="overview-title">
+            <div class="page-heading overview-heading">
+              <div>
+                <p class="eyebrow" id="overview-kicker">CLIENTE X · PANORAMICA</p>
+                <h1 id="overview-title">Una vista chiara,<br><em>cliente per cliente.</em></h1>
+                <p class="heading-copy">Canali, contenuti e andamento in un solo spazio.</p>
+              </div>
+              <button class="button button-dark" id="open-report">
+                <span class="button-icon download-icon" aria-hidden="true"></span>
+                Scarica report
+              </button>
+            </div>
+
+            <div class="demo-notice" role="note">
+              <span class="notice-mark" aria-hidden="true">i</span>
+              <span>Questi numeri restano dimostrativi. Il collegamento Meta identifica gli account, ma non carica ancora metriche o analisi.</span>
+            </div>
+
+            <div class="overview-toolbar">
+              <div class="view-tabs" role="tablist" aria-label="Periodo analisi">
+                <button class="period-tab is-selected" data-period="7">7 giorni</button>
+                <button class="period-tab" data-period="30">30 giorni</button>
+                <button class="period-tab" data-period="custom">Intervallo</button>
+              </div>
+              <div class="overview-filters">
+                <div class="select-wrap channel-select-wrap">
+                  <select id="overview-channel" aria-label="Canale social">
+                    <option value="instagram">Instagram</option>
+                    <option value="facebook">Facebook</option>
+                    <option value="tiktok">TikTok</option>
+                  </select>
+                  <span class="select-chevron" aria-hidden="true"></span>
+                </div>
+                <div class="custom-dates" id="overview-custom-dates" hidden>
+                  <label>Dal <input type="date" id="overview-start"></label>
+                  <label>Al <input type="date" id="overview-end"></label>
+                </div>
+              </div>
+            </div>
+
+            <div class="metric-strip" id="overview-metrics" aria-live="polite"></div>
+
+            <div class="overview-grid">
+              <section class="panel performance-panel" aria-labelledby="performance-title">
+                <div class="panel-heading">
+                  <div>
+                    <p class="eyebrow">ANDAMENTO</p>
+                    <h2 id="performance-title">La community si muove</h2>
+                  </div>
+                  <span class="channel-stamp" id="overview-channel-stamp">IG</span>
+                </div>
+                <div class="chart-summary">
+                  <div><strong id="chart-total">—</strong><span>follower</span></div>
+                  <span class="chart-change" id="chart-change">—</span>
+                </div>
+                <div class="chart-wrap">
+                  <svg class="line-chart" viewBox="0 0 720 190" role="img" aria-labelledby="chart-svg-title chart-svg-desc" preserveAspectRatio="none">
+                    <title id="chart-svg-title">Andamento dei follower</title>
+                    <desc id="chart-svg-desc">Grafico dimostrativo dei follower nel periodo selezionato.</desc>
+                    <line x1="0" y1="30" x2="720" y2="30" class="chart-gridline" />
+                    <line x1="0" y1="90" x2="720" y2="90" class="chart-gridline" />
+                    <line x1="0" y1="150" x2="720" y2="150" class="chart-gridline" />
+                    <path id="chart-area" class="chart-area" d="" />
+                    <path id="chart-line" class="chart-line" d="" />
+                    <circle id="chart-point" class="chart-point" cx="0" cy="0" r="5" />
+                  </svg>
+                </div>
+                <div class="chart-axis"><span id="chart-start-label">—</span><span>Periodo selezionato</span><span id="chart-end-label">—</span></div>
+              </section>
+
+              <section class="panel audience-panel" aria-labelledby="audience-title">
+                <div class="panel-heading">
+                  <div><p class="eyebrow">PUBBLICO</p><h2 id="audience-title">Chi ti segue</h2></div>
+                  <span class="audience-scope">Dati demo</span>
+                </div>
+                <div class="audience-total"><strong id="audience-total">—</strong><span>follower totali</span></div>
+                <div class="audience-block">
+                  <div class="audience-label"><span>Genere</span><span>Distribuzione</span></div>
+                  <div class="gender-bar" id="gender-bar" role="img" aria-label="Distribuzione dimostrativa per genere"></div>
+                  <div class="legend-row" id="gender-legend"></div>
+                </div>
+                <div class="audience-lower">
+                  <div><span class="mini-label">Fascia più presente</span><strong id="top-age">—</strong></div>
+                  <div><span class="mini-label">Città principale</span><strong id="top-city">—</strong></div>
+                </div>
+              </section>
+            </div>
+
+            <div class="content-section-heading">
+              <div><p class="eyebrow">CONTENUTI</p><h2>Il prossimo passo parte da qui</h2></div>
+              <button class="text-button" data-go-page="analysis">Apri analisi completa <span aria-hidden="true">↗</span></button>
+            </div>
+            <div class="content-columns">
+              <section class="content-list-panel" aria-labelledby="best-title">
+                <div class="list-heading"><h3 id="best-title">Da tenere d'occhio</h3><span class="list-index">01 — 05</span></div>
+                <div id="best-content-list" class="content-list"></div>
+              </section>
+              <section class="content-list-panel avoid-panel" aria-labelledby="avoid-title">
+                <div class="list-heading"><h3 id="avoid-title">Da rivedere</h3><span class="list-index">01 — 05</span></div>
+                <div id="avoid-content-list" class="content-list"></div>
+              </section>
+            </div>
+          </section>
+
+          <section class="page-view" id="page-analysis" aria-labelledby="analysis-title" hidden>
+            <div class="page-heading compact-heading">
+              <div><p class="eyebrow" id="analysis-kicker">CLIENTE X · ANALISI</p><h1 id="analysis-title">Leggi i segnali.<br><em>Scegli cosa fare.</em></h1></div>
+              <button class="button button-dark" data-open-report>
+                <span class="button-icon download-icon" aria-hidden="true"></span>
+                Scarica report
+              </button>
+            </div>
+            <div class="demo-notice" role="note"><span class="notice-mark" aria-hidden="true">i</span><span>Questi numeri sono dati dimostrativi. La distribuzione del pubblico varia in base al canale selezionato.</span></div>
+            <div class="analysis-controls">
+              <div class="analysis-control"><label for="analysis-channel">Canale</label><div class="select-wrap"><select id="analysis-channel"><option value="instagram">Instagram</option><option value="facebook">Facebook</option><option value="tiktok">TikTok</option></select><span class="select-chevron" aria-hidden="true"></span></div></div>
+              <div class="analysis-control"><label for="analysis-period">Periodo</label><div class="select-wrap"><select id="analysis-period"><option value="7">Ultimi 7 giorni</option><option value="30" selected>Ultimi 30 giorni</option><option value="custom">Intervallo personalizzato</option></select><span class="select-chevron" aria-hidden="true"></span></div></div>
+              <div class="custom-dates analysis-date-fields" id="analysis-custom-dates" hidden><label>Dal <input type="date" id="analysis-start"></label><label>Al <input type="date" id="analysis-end"></label></div>
+              <span class="analysis-period-label" id="analysis-period-label"></span>
+            </div>
+            <div class="analysis-metrics" id="analysis-metrics" aria-live="polite"></div>
+            <div class="analysis-grid">
+              <section class="panel analysis-chart-panel" aria-labelledby="analysis-chart-title">
+                <div class="panel-heading"><div><p class="eyebrow">CRESCITA COMMUNITY</p><h2 id="analysis-chart-title">Follower nel tempo</h2></div><span class="channel-stamp" id="analysis-channel-stamp">IG</span></div>
+                <div class="chart-summary"><div><strong id="analysis-chart-total">—</strong><span>follower</span></div><span class="chart-change" id="analysis-chart-change">—</span></div>
+                <div class="chart-wrap large-chart"><svg class="line-chart" viewBox="0 0 720 210" role="img" aria-label="Grafico dimostrativo della crescita follower"><line x1="0" y1="35" x2="720" y2="35" class="chart-gridline"/><line x1="0" y1="105" x2="720" y2="105" class="chart-gridline"/><line x1="0" y1="175" x2="720" y2="175" class="chart-gridline"/><path id="analysis-chart-area" class="chart-area" d=""/><path id="analysis-chart-line" class="chart-line" d=""/><circle id="analysis-chart-point" class="chart-point" cx="0" cy="0" r="5"/></svg></div>
+                <div class="chart-axis"><span id="analysis-chart-start">—</span><span id="analysis-chart-end">—</span></div>
+              </section>
+              <section class="panel demographics-panel" aria-labelledby="demographics-title">
+                <div class="panel-heading"><div><p class="eyebrow">PUBBLICO</p><h2 id="demographics-title">Chi c'è dall'altra parte</h2></div></div>
+                <div class="demographic-item"><div class="demographic-heading"><span>Genere</span><span id="analysis-gender-note">Distribuzione demo</span></div><div class="gender-bar" id="analysis-gender-bar" role="img" aria-label="Distribuzione dimostrativa per genere"></div><div class="legend-row" id="analysis-gender-legend"></div></div>
+                <div class="demographic-item"><div class="demographic-heading"><span>Età</span><span>Distribuzione demo</span></div><div id="age-bars" class="age-bars"></div></div>
+                <div class="demographic-item locations-item"><div class="demographic-heading"><span>Luoghi</span><span>Top città</span></div><div id="location-list" class="location-list"></div></div>
+              </section>
+            </div>
+            <div class="analysis-content-heading"><div><p class="eyebrow">RENDIMENTO CONTENUTI</p><h2>Una selezione per decidere</h2></div><span id="analysis-content-period">Ultimi 30 giorni</span></div>
+            <div class="analysis-content-columns">
+              <section class="content-list-panel" aria-labelledby="analysis-best-title"><div class="list-heading"><h3 id="analysis-best-title">Migliori 5 contenuti</h3><span class="quality-mark">Da replicare</span></div><div id="analysis-best-list" class="content-list"></div></section>
+              <section class="content-list-panel avoid-panel" aria-labelledby="analysis-avoid-title"><div class="list-heading"><h3 id="analysis-avoid-title">5 contenuti da rivedere</h3><span class="quality-mark avoid-mark">Da evitare</span></div><div id="analysis-avoid-list" class="content-list"></div></section>
+            </div>
+          </section>
+
+          <section class="page-view calendar-view" id="page-appointments" aria-labelledby="appointments-title" hidden>
+            <div class="page-heading calendar-heading">
+              <div><p class="eyebrow">SPAZIO CONDIVISO · TUTTI I CLIENTI</p><h1 id="appointments-title">Appuntamenti<br><em>dello studio.</em></h1><p class="heading-copy">Call, revisioni e impegni di tutti i clienti in un solo calendario.</p></div>
+              <div class="calendar-actions"><button class="button button-outline" id="export-calendar"><span class="button-icon download-icon" aria-hidden="true"></span>Esporta .ics</button><button class="button button-accent" id="add-appointment"><span class="button-icon plus-icon" aria-hidden="true"></span>Nuovo appuntamento</button></div>
+            </div>
+            <p class="calendar-sync-note">L'esportazione .ics è una copia e non si aggiorna automaticamente.</p>
+            <div class="calendar-note"><span class="calendar-note-mark" aria-hidden="true">◎</span><span>Solo appuntamenti · tutti i clienti</span><span class="calendar-week-label" id="appointments-week-label"></span></div>
+            <div class="calendar-toolbar">
+              <div class="week-navigation"><button class="icon-button" data-calendar-shift="-1" data-calendar-target="appointments" aria-label="Settimana precedente"><span aria-hidden="true">‹</span></button><button class="button button-outline" data-calendar-today="appointments">Oggi</button><button class="icon-button" data-calendar-shift="1" data-calendar-target="appointments" aria-label="Settimana successiva"><span aria-hidden="true">›</span></button></div>
+              <div class="calendar-views" role="group" aria-label="Vista appuntamenti"><button class="calendar-view-button is-selected" data-calendar-view="week" data-calendar-target="appointments">Settimana</button><button class="calendar-view-button" data-calendar-view="month" data-calendar-target="appointments">Mese</button></div>
+            </div>
+            <div class="week-grid" id="appointments-week-grid" aria-live="polite"></div>
+            <p class="month-empty-note" id="appointments-month-empty" hidden></p>
+            <div class="month-grid-scroll" id="appointments-month-scroll" tabindex="0" aria-label="Calendario mensile appuntamenti" hidden><div class="month-grid" id="appointments-month-grid" aria-live="polite"></div></div>
+          </section>
+
+          <section class="page-view calendar-view" id="page-content-calendar" aria-labelledby="content-calendar-title" hidden>
+            <div class="page-heading calendar-heading">
+              <div><p class="eyebrow">PIANIFICAZIONE · TUTTI I CLIENTI</p><h1 id="content-calendar-title">Programmazione<br><em>contenuti.</em></h1><p class="heading-copy">Post, storie, reel e TikTok, separati dagli appuntamenti dello studio.</p></div>
+              <div class="calendar-actions"><button class="button button-accent" id="add-scheduled-content"><span class="button-icon plus-icon" aria-hidden="true"></span>Programma contenuto</button></div>
+            </div>
+            <p class="calendar-sync-note">I contenuti si salvano solo in questo browser e non vengono pubblicati: gli account social non sono collegati.</p>
+            <div class="calendar-note"><span class="calendar-note-mark" aria-hidden="true">◎</span><span>Solo contenuti programmati · tutti i clienti</span><span class="calendar-week-label" id="content-week-label"></span></div>
+            <div class="calendar-toolbar">
+              <div class="week-navigation"><button class="icon-button" data-calendar-shift="-1" data-calendar-target="content" aria-label="Settimana precedente"><span aria-hidden="true">‹</span></button><button class="button button-outline" data-calendar-today="content">Oggi</button><button class="icon-button" data-calendar-shift="1" data-calendar-target="content" aria-label="Settimana successiva"><span aria-hidden="true">›</span></button></div>
+              <div class="calendar-views" role="group" aria-label="Vista contenuti programmati"><button class="calendar-view-button is-selected" data-calendar-view="week" data-calendar-target="content">Settimana</button><button class="calendar-view-button" data-calendar-view="month" data-calendar-target="content">Mese</button></div>
+            </div>
+            <div class="week-grid" id="content-week-grid" aria-live="polite"></div>
+            <p class="month-empty-note" id="content-month-empty" hidden></p>
+            <div class="month-grid-scroll" id="content-month-scroll" tabindex="0" aria-label="Calendario mensile contenuti" hidden><div class="month-grid" id="content-month-grid" aria-live="polite"></div></div>
+          </section>
+        </div>
+      </main>
+    </div>
+
+    <dialog class="modal" id="report-dialog" aria-labelledby="report-title">
+      <form id="report-form" method="dialog">
+        <div class="modal-heading"><div><p class="eyebrow">REPORT CLIENTE</p><h2 id="report-title">Cosa vuoi condividere?</h2></div><button type="button" class="icon-button close-dialog" aria-label="Chiudi finestra">×</button></div>
+        <p class="modal-copy">Scegli i dati, il periodo e i canali da includere nel PDF.</p>
+        <fieldset class="report-fieldset"><legend>Canali</legend><div class="check-grid"><label class="check-option"><input type="checkbox" name="channels" value="instagram" checked><span class="platform-letter instagram-letter">ig</span>Instagram</label><label class="check-option"><input type="checkbox" name="channels" value="facebook" checked><span class="platform-letter facebook-letter">f</span>Facebook</label><label class="check-option"><input type="checkbox" name="channels" value="tiktok"><span class="platform-letter tiktok-letter">tt</span>TikTok</label></div></fieldset>
+        <fieldset class="report-fieldset"><legend>Dati da includere</legend><div class="check-grid data-check-grid"><label class="check-option"><input type="checkbox" name="data" value="audience" checked><span>Pubblico e follower</span></label><label class="check-option"><input type="checkbox" name="data" value="interactions" checked><span>Interazioni</span></label><label class="check-option"><input type="checkbox" name="data" value="content" checked><span>Rendimento contenuti</span></label><label class="check-option"><input type="checkbox" name="data" value="demographics"><span>Genere, età e luoghi</span></label></div></fieldset>
+        <div class="report-dates"><label for="report-start">Dal<input type="date" id="report-start" required></label><label for="report-end">Al<input type="date" id="report-end" required></label></div>
+        <p class="form-error" id="report-error" role="alert" hidden></p>
+        <div class="modal-actions"><button type="button" class="button button-outline close-dialog">Annulla</button><button type="submit" class="button button-dark"><span class="button-icon download-icon" aria-hidden="true"></span>Prepara PDF</button></div>
+      </form>
+    </dialog>
+
+    <dialog class="modal appointment-modal" id="appointment-dialog" aria-labelledby="appointment-title">
+      <form id="appointment-form" method="dialog">
+        <div class="modal-heading"><div><p class="eyebrow">CALENDARIO STUDIO</p><h2 id="appointment-title">Aggiungi un appuntamento</h2></div><button type="button" class="icon-button close-dialog" aria-label="Chiudi finestra">×</button></div>
+        <label class="form-label" for="appointment-name">Titolo<input id="appointment-name" name="title" type="text" placeholder="Es. Revisione contenuti" required maxlength="70"></label>
+        <div class="form-row"><label class="form-label" for="appointment-client">Cliente<select id="appointment-client" name="client"><option>Cliente X</option><option>Cliente Y</option><option>Cliente W</option><option>Cliente Z</option></select></label><label class="form-label" for="appointment-channel">Canale<select id="appointment-channel" name="channel"><option>Instagram</option><option>Facebook</option><option>TikTok</option><option>Studio</option></select></label></div>
+        <div class="form-row"><label class="form-label" for="appointment-date">Data<input id="appointment-date" name="date" type="date" required></label><label class="form-label" for="appointment-time">Ora<input id="appointment-time" name="time" type="time" required></label></div>
+        <p class="form-error" id="appointment-error" role="alert" hidden></p>
+        <div class="modal-actions"><button type="button" class="button button-outline close-dialog">Annulla</button><button type="submit" class="button button-accent">Salva appuntamento</button></div>
+      </form>
+    </dialog>
+
+    <dialog class="modal content-modal" id="content-dialog" aria-labelledby="content-title">
+      <form id="content-form" method="dialog">
+        <div class="modal-heading"><div><p class="eyebrow">PIANIFICAZIONE · SOLO LOCALE</p><h2 id="content-title">Programma un contenuto</h2></div><button type="button" class="icon-button close-dialog" aria-label="Chiudi finestra">×</button></div>
+        <p class="modal-copy">Il contenuto viene aggiunto al calendario, ma non pubblicato sui social.</p>
+        <label class="form-label" for="content-name">Titolo interno<input id="content-name" name="title" type="text" placeholder="Es. Reel dietro le quinte" required maxlength="70"></label>
+        <div class="form-row"><label class="form-label" for="content-client">Cliente<select id="content-client" name="client"><option>Cliente X</option><option>Cliente Y</option><option>Cliente W</option><option>Cliente Z</option></select></label><label class="form-label" for="content-format">Formato<select id="content-format" name="format"><option>Post</option><option>Storia</option><option>Reel</option><option>TikTok</option><option>Video</option></select></label></div>
+        <fieldset class="report-fieldset"><legend>Canali</legend><div class="check-grid"><label class="check-option"><input type="checkbox" name="content-channels" value="instagram"><span class="platform-letter instagram-letter">ig</span>Instagram</label><label class="check-option"><input type="checkbox" name="content-channels" value="facebook"><span class="platform-letter facebook-letter">f</span>Facebook</label><label class="check-option"><input type="checkbox" name="content-channels" value="tiktok"><span class="platform-letter tiktok-letter">tt</span>TikTok</label></div></fieldset>
+        <label class="form-label" for="content-caption">Testo del contenuto<textarea id="content-caption" name="caption" rows="4" maxlength="2200" placeholder="Scrivi la caption…"></textarea></label>
+        <label class="form-label" for="content-media">Link al media, facoltativo<input id="content-media" name="media" type="url" placeholder="https://…"></label>
+        <div class="form-row"><label class="form-label" for="content-date">Data<input id="content-date" name="date" type="date" required></label><label class="form-label" for="content-time">Ora<input id="content-time" name="time" type="time" required></label></div>
+        <p class="form-error" id="content-error" role="alert" hidden></p>
+        <div class="modal-actions"><button type="button" class="button button-outline close-dialog">Annulla</button><button type="submit" class="button button-accent">Salva nel calendario</button></div>
+      </form>
+    </dialog>
+
+    <section class="print-report" id="print-report" aria-label="Report stampabile"></section>
+    <div class="toast" id="toast" role="status" aria-live="polite"></div>
+    <script src="app.js?v=meta-oauth"></script>
+  </body>
+</html>
