@@ -1,16 +1,15 @@
 ---
 name: bynor-social-studio
-description: Use when changing Bynor client profiles, social analytics, reporting, or the shared appointments calendar.
+description: Use when changing Habitat client profiles, social analytics, reporting, the content plan, the shared appointments calendar, or the graphic editor.
 ---
 
-# Bynor product skill
+# Habitat product skill
 
-Read `DESIGN.md` before changing the product's structure.
+Read `DESIGN.md` and `CLAUDE.md` before changing the product's structure.
 
-- Client profiles: X, Y, W, and Z are demo placeholders. Changing the profile updates its overview and analysis.
-- Channels: Instagram, Facebook, and TikTok are available on analysis and reporting.
-- Analysis includes follower change, likes, views, comments, engagement rate, five example posts to repeat, five to review, and audience gender, age, and location.
-- Period controls support 7 days, 30 days, and a custom inclusive date range.
-- The report dialog lets a user choose channels, report sections, and dates. The prototype opens the browser print dialog; users can choose Save as PDF.
-- The appointments calendar is shared by the studio, spans every client, and must not change with the client profile selector. Appointment records are local to this browser in the prototype.
-- Keep a visible demo-data notice. No Instagram, Facebook, or TikTok API is connected in this prototype.
+- Clients live on the server (`data/db.json`). Each client has handles, channel connections (tokens never reach the browser) and a style: five colors, heading and body fonts, logo, notes.
+- Channels: Instagram, Facebook, TikTok. Not connected = generated demo data, always labelled "Dati demo" on screen and in the PDF. Connections come from the Meta/TikTok login (`server/oauth.js`) or tokens pasted by hand.
+- Analysis compares every number with the previous period of equal length. Periods: 7, 30, 90 days or a custom inclusive range ending yesterday at the latest.
+- The PDF report is generated on the server with pdfkit from the same analytics object as the dashboard.
+- Content plan and appointments are shared by the studio, span every client, and are never filtered automatically by the client switcher. Content is planned, not published.
+- Graphic editor: posts, stories and reels per client. Colors and fonts can reference the client style (`@primary`, `@heading`, `@logo`). One renderer (`public/js/editor/render.js`) draws preview and exports; reels export as MP4 in real time via MediaRecorder.
