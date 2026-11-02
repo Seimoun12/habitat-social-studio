@@ -12,7 +12,11 @@ const out = path.resolve(process.argv[2] || 'tmp/ui-check');
 const dataDir = mkdtempSync(path.join(os.tmpdir(), 'ui-check-data-'));
 const port = 3900 + Math.floor(Math.random() * 90);
 const base = `http://localhost:${port}`;
-const server = spawn(process.execPath, ['server/index.js'], { env: { ...process.env, PORT: String(port), DATA_DIR: dataDir }, stdio: 'pipe' });
+const server = spawn(process.execPath, ['server/index.js'], { env: {
+  ...process.env, PORT: String(port), DATA_DIR: dataDir,
+  // Login non configurati: il test non dipende dal file .env (dotenv non sovrascrive variabili già impostate).
+  META_APP_ID: '', META_APP_SECRET: '', META_CONFIG_ID: '', TIKTOK_CLIENT_KEY: '', TIKTOK_CLIENT_SECRET: '', PUBLIC_URL: '',
+}, stdio: 'pipe' });
 await new Promise((resolve, reject) => {
   server.stdout.on('data', (d) => { if (String(d).includes('pronto')) resolve(); });
   server.on('exit', (code) => reject(new Error('Il server di prova si è fermato, codice ' + code)));

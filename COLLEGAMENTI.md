@@ -16,6 +16,8 @@ Un solo login collega la Pagina Facebook e l'account Instagram professionale col
 
 Permessi richiesti: `pages_show_list`, `pages_read_engagement`, `read_insights`, `instagram_basic`, `instagram_manage_insights`, `business_management`. In modalità sviluppo possono fare il login solo le persone con un ruolo nell'app; per i clienti esterni servono la verifica dell'attività e la revisione dei permessi da parte di Meta.
 
+**"Invalid Scopes".** Meta mostra questo avviso quando i permessi non sono disponibili per l'app. Nel pannello dell'app apri **Casi d'uso** e aggiungi quelli che contengono i permessi della Pagina e di Instagram (gestione della Pagina, API Instagram con login Facebook). In ognuno, sotto **Personalizza → Autorizzazioni**, aggiungi i permessi elencati sopra. In alternativa crea in **Facebook Login for Business → Configurazioni** una configurazione con token utente e quei permessi, e scrivi il suo ID in `META_CONFIG_ID`.
+
 I token di Pagina ottenuti così non scadono finché la persona non cambia password o revoca l'accesso.
 
 Limiti delle API Meta, mostrati anche nella dashboard:
@@ -33,6 +35,28 @@ Limiti delle API Meta, mostrati anche nella dashboard:
 Il token TikTok dura 24 ore: Habitat lo rinnova da solo con il refresh token (valido circa un anno) prima di leggere i dati.
 
 Limiti: niente dati demografici né nuovi/persi; le visualizzazioni sono il totale di ogni video ad oggi, attribuito al giorno di pubblicazione.
+
+## Link per il cliente
+
+Così il cliente collega da solo i suoi account, senza darti le password.
+
+1. In **Clienti** premi **Link per il cliente** sulla riga del cliente, scegli i canali e premi **Crea link**.
+2. **Copia link** e mandalo al cliente (WhatsApp, email).
+3. Il cliente apre il link, fa l'accesso a Facebook o TikTok e torna su una pagina di conferma. In Habitat la riga del cliente risulta collegata.
+
+Il link vale 7 giorni e si può annullare prima. Mostra solo il nome del cliente e i pulsanti di accesso: dall'esterno il resto dell'app risponde "Pagina non disponibile".
+
+**Per provarlo su te stesso** basta questo computer: crea il link, premi **Apri** e fai l'accesso.
+
+**Perché il cliente lo apra dal suo telefono**, Habitat deve essere raggiungibile da internet in https:
+
+1. Crea un tunnel verso `http://localhost:3000`, per esempio con Cloudflare Tunnel. Ti serve un indirizzo fisso, perché va registrato nelle app di Meta e TikTok: il tunnel rapido `cloudflared tunnel --url` cambia indirizzo a ogni avvio.
+2. In `.env` scrivi `PUBLIC_URL=https://tuo-indirizzo` e riavvia.
+3. Registra i nuovi redirect: `https://tuo-indirizzo/oauth/meta/callback` nell'app Meta e `https://tuo-indirizzo/oauth/tiktok/callback` nell'app TikTok, con la piattaforma **Web** al posto di Desktop.
+
+**Account dei clienti veri.** Finché l'app TikTok è in sandbox può accedere solo chi è tra i **Target users**. Lo stesso vale per l'app Meta in modalità sviluppo, dove accede solo chi ha un ruolo nell'app. Per clienti qualsiasi servono la revisione dell'app TikTok e, per Meta, la verifica dell'attività e la revisione dei permessi.
+
+L'app si apre solo da questo computer, non dagli altri dispositivi della rete di casa, perché non ha una password.
 
 ## Token a mano
 

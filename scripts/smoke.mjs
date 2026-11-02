@@ -9,7 +9,11 @@ import assert from 'node:assert/strict';
 const dataDir = mkdtempSync(path.join(os.tmpdir(), 'smoke-data-'));
 const port = 3800 + Math.floor(Math.random() * 90);
 const base = `http://localhost:${port}`;
-const server = spawn(process.execPath, ['server/index.js'], { env: { ...process.env, PORT: String(port), DATA_DIR: dataDir }, stdio: 'pipe' });
+const server = spawn(process.execPath, ['server/index.js'], { env: {
+  ...process.env, PORT: String(port), DATA_DIR: dataDir,
+  // Chiavi finte e fisse: i test non dipendono dal file .env (dotenv non sovrascrive variabili già impostate).
+  META_APP_ID: '', META_APP_SECRET: '', TIKTOK_CLIENT_KEY: 'chiave-test', TIKTOK_CLIENT_SECRET: 'segreto-test', PUBLIC_URL: '',
+}, stdio: 'pipe' });
 await new Promise((resolve, reject) => {
   server.stdout.on('data', (d) => { if (String(d).includes('pronto')) resolve(); });
   server.on('exit', (code) => reject(new Error('Il server si è fermato, codice ' + code)));
@@ -110,6 +114,49 @@ await check('elimina cliente: l\'appuntamento resta senza cliente', async () => 
 });
 await check('elimina appuntamento', async () => {
   assert.equal((await req('DELETE', `/api/appointments/${apptId}`)).status, 204);
+});
+const viaTunnel = { 'X-Forwarded-For': '203.0.113.7' };
+let inviteId;
+await check('link cliente: senza canali o con login non configurato -> 400', async () => {
+  assert.equal((await req('POST', '/api/clients/demo-a/invites', { platforms: [] })).status, 400);
+  assert.equal((await req('POST', '/api/clients/demo-a/invites', { platforms: ['meta'] })).status, 400);
+});
+await check('link cliente: crea link TikTok', async () => {
+  const r = await req('POST', '/api/clients/demo-a/invites', { platforms: ['tiktok', 'nulla'] });
+  assert.equal(r.status, 201);
+  assert.deepEqual(r.body.platforms, ['tiktok']);
+  assert.match(r.body.url, /\/collega\/[\w-]{20,}$/);
+  inviteId = r.body.id;
+  assert.equal((await req('GET', '/api/clients/demo-a/invites')).body.length, 1);
+});
+await check('link cliente: pagina pubblica, anche via tunnel', async () => {
+  const r = await fetch(`${base}/collega/${inviteId}`, { headers: viaTunnel });
+  assert.equal(r.status, 200);
+  const html = await r.text();
+  assert.ok(html.includes('Collega i tuoi account'));
+  assert.ok(html.includes(`/oauth/tiktok/start?invite=${inviteId}`));
+  assert.ok(!html.includes('segreto-test'));
+});
+await check('link cliente: il login parte verso TikTok', async () => {
+  const r = await fetch(`${base}/oauth/tiktok/start?invite=${inviteId}`, { headers: viaTunnel, redirect: 'manual' });
+  assert.equal(r.status, 303);
+  const loc = new URL(r.headers.get('location'));
+  assert.equal(loc.host, 'www.tiktok.com');
+  assert.equal(loc.searchParams.get('client_key'), 'chiave-test');
+  assert.ok(loc.searchParams.get('code_challenge'));
+});
+await check('via tunnel: app, API e login senza link non raggiungibili', async () => {
+  assert.equal((await fetch(`${base}/api/clients`, { headers: viaTunnel })).status, 404);
+  assert.equal((await fetch(`${base}/`, { headers: viaTunnel })).status, 404);
+  assert.equal((await fetch(`${base}/oauth/tiktok/start?client=demo-a`, { headers: viaTunnel, redirect: 'manual' })).status, 403);
+});
+await check('link cliente: annullato non si apre più', async () => {
+  assert.equal((await req('DELETE', `/api/invites/${inviteId}`)).status, 204);
+  const r = await fetch(`${base}/collega/${inviteId}`);
+  assert.equal(r.status, 404);
+  assert.ok((await r.text()).includes('non più valido'));
+  const s = await fetch(`${base}/oauth/tiktok/start?invite=${inviteId}`, { redirect: 'manual' });
+  assert.equal(s.headers.get('location'), `/collega/${inviteId}`);
 });
 await check('percorso API inesistente -> 404 JSON', async () => {
   const r = await req('GET', '/api/nulla');

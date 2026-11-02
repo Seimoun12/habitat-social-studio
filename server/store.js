@@ -3,7 +3,7 @@
 import { readFile, writeFile, mkdir, rename, rm } from 'node:fs/promises';
 import { existsSync } from 'node:fs';
 import path from 'node:path';
-import { randomUUID } from 'node:crypto';
+import { randomUUID, randomBytes } from 'node:crypto';
 
 export const DATA_DIR = path.resolve(process.env.DATA_DIR || 'data');
 export const UPLOAD_DIR = path.join(DATA_DIR, 'uploads');
@@ -30,6 +30,7 @@ const SEED = {
   contents: [],
   designs: [],
   assets: [],
+  invites: [],
 };
 
 let cache = null;
@@ -45,7 +46,7 @@ async function load() {
     return cache;
   }
   cache = JSON.parse(await readFile(DB_FILE, 'utf8'));
-  for (const key of ['clients', 'appointments', 'contents', 'designs', 'assets']) cache[key] ??= [];
+  for (const key of ['clients', 'appointments', 'contents', 'designs', 'assets', 'invites']) cache[key] ??= [];
   return cache;
 }
 
@@ -120,6 +121,53 @@ export async function saveClient(input, id = null) {
   return client;
 }
 
+// Link di collegamento da mandare al cliente: chi lo apre collega i propri account
+// e non vede nient'altro dell'app. Vale INVITE_DAYS giorni o finché non viene annullato.
+export const INVITE_DAYS = 7;
+
+export async function createInvite(clientId, platforms) {
+  const db = await load();
+  if (!db.clients.some((c) => c.id === clientId)) return null;
+  const now = Date.now();
+  db.invites = db.invites.filter((x) => Date.parse(x.expiresAt) > now);
+  const invite = {
+    id: randomBytes(18).toString('base64url'),
+    clientId,
+    platforms,
+    created: new Date(now).toISOString(),
+    expiresAt: new Date(now + INVITE_DAYS * 86400000).toISOString(),
+    used: {},
+  };
+  db.invites.push(invite);
+  await persist();
+  return invite;
+}
+
+export async function getInvite(id) {
+  const x = (await load()).invites.find((i) => i.id === id);
+  return x && Date.parse(x.expiresAt) > Date.now() ? x : null;
+}
+
+export async function listInvites(clientId) {
+  const now = Date.now();
+  return (await load()).invites.filter((x) => x.clientId === clientId && Date.parse(x.expiresAt) > now);
+}
+
+export async function markInviteUsed(id, platform) {
+  const x = await getInvite(id);
+  if (!x) return;
+  x.used[platform] = new Date().toISOString();
+  await persist();
+}
+
+export async function deleteInvite(id) {
+  const db = await load();
+  const before = db.invites.length;
+  db.invites = db.invites.filter((x) => x.id !== id);
+  await persist();
+  return db.invites.length < before;
+}
+
 // Collegamento ottenuto da OAuth: sostituisce del tutto quello precedente del canale.
 export async function setConnection(clientId, platform, conn) {
   const client = await getClient(clientId);
@@ -155,6 +203,7 @@ export async function deleteClient(id) {
   db.designs = db.designs.filter((d) => d.clientId !== id);
   for (const a of db.assets.filter((x) => x.clientId === id)) await rm(path.join(UPLOAD_DIR, a.file), { force: true });
   db.assets = db.assets.filter((a) => a.clientId !== id);
+  db.invites = db.invites.filter((x) => x.clientId !== id);
   await persist();
   return db.clients.length < before;
 }

@@ -526,3 +526,15 @@ dialog::backdrop { background: #12241c99; backdrop-filter: blur(2px); }
 @media print {
   .sidebar, .topbar, .toolbar, .button { display: none !important; }
 }
+
+/* Link per il cliente: un blocco per link attivo, separati da una riga come i blocchi dei canali. */
+.invite-head { margin: 18px 0 4px; font-size: 13px; }
+.invite-item { display: grid; gap: 8px; padding: 12px 0; border-top: 1px solid var(--line); }
+.invite-item input[readonly] { font-size: 12px; }
+
+/* Guide nella scheda cliente: passi numerati e valori da copiare (URI, permessi) in carattere a larghezza fissa. */
+.guide-steps { margin: 0; padding-left: 20px; display: grid; gap: 8px; font-size: 13px; color: var(--ink-2); }
+.guide-steps a { color: var(--ink); font-weight: 600; }
+.guide-steps code, .copy-row code { font-size: 12px; overflow-wrap: anywhere; }
+.copy-row { display: flex; align-items: center; gap: 8px; margin-top: 6px; padding: 6px 6px 6px 10px; border: 1px solid var(--line); border-radius: var(--radius-sm); background: var(--surface-2); }
+.copy-row code { flex: 1; min-width: 0; color: var(--ink); }

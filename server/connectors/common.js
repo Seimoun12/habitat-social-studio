@@ -19,6 +19,10 @@ export async function getJson(platform, url, init = {}) {
   const body = await res.json().catch(() => ({}));
   if (!res.ok || body.error?.code && body.error.code !== 'ok') {
     const msg = body.error?.message || `risposta ${res.status}`;
+    // Token non valido, scaduto o revocato (Meta: codice 190): l'unico rimedio è ricollegare l'account.
+    if (body.error?.code === 190 || body.error?.code === 'access_token_invalid') {
+      throw new ConnectorError(platform, `il token salvato non è valido o è scaduto (${msg}). Ricollega l'account da Clienti → Modifica e collega, oppure scollegalo per tornare ai dati demo.`, res.status);
+    }
     throw new ConnectorError(platform, msg, res.status);
   }
   return body;

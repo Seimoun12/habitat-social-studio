@@ -6,12 +6,27 @@ import { rm, writeFile } from 'node:fs/promises';
 import { randomUUID } from 'node:crypto';
 import * as store from './store.js';
 import * as oauth from './oauth.js';
+import * as invitePage from './invite-page.js';
 import { getAnalytics, PLATFORMS } from './analytics.js';
 import { buildSummary } from './summary.js';
 import { renderReport, REPORT_SECTIONS } from './report.js';
 import { resolveRange, isIsoDate } from './dates.js';
 
 const app = express();
+
+// Locale = da questo computer, senza passare da un tunnel (che aggiunge le intestazioni forwarded).
+// Tutto il resto vede solo la pagina del link di collegamento e il login: l'app non ha password.
+const LOOPBACK = new Set(['127.0.0.1', '::1', '::ffff:127.0.0.1']);
+const LOCAL_HOST = /^(localhost|127\.0\.0\.1|\[::1\])(:\d+)?$/i;
+const PUBLIC_PATH = /^\/(collega\/[\w-]+(\/meta)?|oauth\/(meta|tiktok)\/(start|callback)|fonts\/[\w/.-]+)$/;
+app.use((req, res, next) => {
+  const h = req.headers;
+  req.isLocal = LOOPBACK.has(req.socket.remoteAddress) && LOCAL_HOST.test(h.host || '')
+    && !h['x-forwarded-for'] && !h['cf-connecting-ip'] && !h.forwarded;
+  if (req.isLocal || PUBLIC_PATH.test(req.path)) return next();
+  res.status(404).type('text').send('Pagina non disponibile.');
+});
+
 app.use(express.json({ limit: '4mb' })); // i progetti grafici con molti livelli superano i 100kb
 app.use(express.static(path.resolve('public')));
 app.use('/fonts/dm-sans', express.static(path.resolve('node_modules/@fontsource/dm-sans/files'), { maxAge: '30d' }));
@@ -319,9 +334,9 @@ app.delete('/api/appointments/:id', wrap(async (req, res) => {
 // Collegamento account con OAuth
 
 app.get('/api/oauth/status', (_req, res) => res.json(oauth.status()));
-app.get('/oauth/meta/start', oauth.metaStart);
+app.get('/oauth/meta/start', wrap(oauth.metaStart));
 app.get('/oauth/meta/callback', wrap(oauth.metaCallback));
-app.get('/oauth/tiktok/start', oauth.tiktokStart);
+app.get('/oauth/tiktok/start', wrap(oauth.tiktokStart));
 app.get('/oauth/tiktok/callback', wrap(oauth.tiktokCallback));
 
 app.get('/api/oauth/meta/pending/:id', (req, res) => {
@@ -333,6 +348,61 @@ app.get('/api/oauth/meta/pending/:id', (req, res) => {
 app.post('/api/oauth/meta/pending/:id', wrap(async (req, res) => {
   const { saved, client } = await oauth.metaConfirm(req.params.id, req.body || {});
   res.json({ saved, client: store.publicClient(client) });
+}));
+
+// Link di collegamento per il cliente
+
+const INVITE_PLATFORMS = ['meta', 'tiktok'];
+const publicInvite = (x) => ({
+  id: x.id, url: `${oauth.inviteBase()}/collega/${x.id}`, platforms: x.platforms, created: x.created, expiresAt: x.expiresAt, used: x.used,
+});
+
+app.get('/api/clients/:id/invites', wrap(async (req, res) => {
+  if (!(await store.getClient(req.params.id))) return notFound(res, 'Cliente');
+  res.json((await store.listInvites(req.params.id)).map(publicInvite));
+}));
+
+app.post('/api/clients/:id/invites', wrap(async (req, res) => {
+  const platforms = [...new Set(Array.isArray(req.body?.platforms) ? req.body.platforms : [])].filter((p) => INVITE_PLATFORMS.includes(p));
+  if (!platforms.length) return bad(res, 'Scegli almeno un canale da collegare.');
+  const st = oauth.status();
+  const off = platforms.filter((p) => !st[p].configured);
+  if (off.length) return bad(res, `Login ${off.map((p) => (p === 'meta' ? 'Meta' : 'TikTok')).join(' e ')} non configurato nel file .env.`);
+  const x = await store.createInvite(req.params.id, platforms);
+  if (!x) return notFound(res, 'Cliente');
+  res.status(201).json(publicInvite(x));
+}));
+
+app.delete('/api/invites/:id', wrap(async (req, res) => {
+  res.status((await store.deleteInvite(req.params.id)) ? 204 : 404).end();
+}));
+
+const sendPage = (res, html, code = 200) => res.status(code).set('Cache-Control', 'no-store').type('html').send(html);
+
+app.get('/collega/:token', wrap(async (req, res) => {
+  const invite = await store.getInvite(req.params.token);
+  const client = invite && (await store.getClient(invite.clientId));
+  if (!client) return sendPage(res, invitePage.expiredPage(), 404);
+  const choice = String(req.query.scelta || '');
+  const pick = choice && oauth.metaPending(choice, invite.id);
+  if (pick) return sendPage(res, invitePage.metaPickPage({ invite, client, pick, choice }));
+  sendPage(res, invitePage.invitePage({ invite, client, status: oauth.status(), outcome: String(req.query.esito || '') }));
+}));
+
+app.post('/collega/:token/meta', express.urlencoded({ extended: false, limit: '8kb' }), wrap(async (req, res) => {
+  const invite = await store.getInvite(req.params.token);
+  const client = invite && (await store.getClient(invite.clientId));
+  if (!client) return sendPage(res, invitePage.expiredPage(), 404);
+  const choice = String(req.body.scelta || '');
+  try {
+    await oauth.metaConfirm(choice, { facebookPageId: String(req.body.fb || ''), instagramPageId: String(req.body.ig || '') }, invite.id);
+  } catch (e) {
+    if (!(e instanceof RangeError)) throw e;
+    const pick = oauth.metaPending(choice, invite.id);
+    if (pick) return sendPage(res, invitePage.metaPickPage({ invite, client, pick, choice, error: e.message }), 400);
+    return res.redirect(303, `/collega/${encodeURIComponent(invite.id)}?esito=stato-non-valido`);
+  }
+  res.redirect(303, `/collega/${encodeURIComponent(invite.id)}?esito=meta-collegato`);
 }));
 
 app.use('/api', (_req, res) => res.status(404).json({ error: 'Percorso API inesistente.' }));
