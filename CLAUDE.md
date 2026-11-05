@@ -10,7 +10,7 @@ Nato dalla fusione di due progetti: la grafica e la struttura di Habitat, le fun
 - **Direzione visiva in [DESIGN.md](DESIGN.md)** (dial ENERGY 2 / RHYTHM 2 / MOTION 1). Ogni nuova scelta visiva va motivata lì.
 - **Mai numeri inventati presentati come reali.** I dati demo restano etichettati come tali, a schermo e nel PDF.
 - **I token di accesso non escono mai dal server** (`publicClient` in `server/store.js`, `metaPending` in `server/oauth.js`). Non loggarli.
-- **Dall'esterno si vede solo il link del cliente.** Il filtro in cima a `server/index.js` lascia passare da tunnel o rete solo `/collega/*`, il login e i caratteri; un login Meta/TikTok senza link valido parte solo da localhost o da una sessione con password (`startTarget` in `server/oauth.js`). Ogni nuova rotta pubblica va aggiunta lì di proposito.
+- **Dall'esterno si vede solo il link del cliente.** Il filtro in cima a `server/index.js` lascia passare da tunnel o rete solo `/collega/*`, il login e i caratteri; un login Meta/TikTok senza link valido parte solo da localhost o da una sessione con password (`startTarget` in `server/oauth.js`). Ogni nuova rotta pubblica va aggiunta lì di proposito (oggi anche `/privacy`, `/termini`, `/elimina-dati`, attive solo con LEGAL_OWNER e LEGAL_EMAIL).
   Se `HABITAT_PASSWORD_HASH` è impostato (`server/auth.js`, `npm run password`) si apre anche `/login`: con la sessione firmata passa tutta l'app, da localhost non serve mai. Senza l'hash il comportamento è quello di prima.
 - Il calendario appuntamenti è dello studio: non si filtra mai in automatico per il cliente selezionato.
 - Niente em dash (—) nei testi visibili.

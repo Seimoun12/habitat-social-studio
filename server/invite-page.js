@@ -36,6 +36,10 @@ h1 { margin: 0 0 14px; font: 500 34px/1.1 'Playfair Display', Georgia, serif; }
 h2 { margin: 0 0 4px; font-size: 16px; }
 p { margin: 0 0 12px; }
 .muted { color: var(--muted); font-size: 13px; }
+.legal h2 { margin: 26px 0 6px; }
+.legal ul { margin: 0 0 12px; padding-left: 20px; }
+.legal li { margin-bottom: 6px; }
+a { color: var(--forest); }
 .card { margin-top: 14px; padding: 18px; border: 1px solid var(--line); border-radius: 12px; background: #fff; }
 .card p { margin-bottom: 14px; }
 .button { display: inline-flex; min-height: 44px; align-items: center; padding: 0 18px; border: 0; border-radius: 8px; background: var(--leaf); color: var(--ink); font: 700 14px 'DM Sans', system-ui, sans-serif; text-decoration: none; cursor: pointer; }
@@ -97,7 +101,7 @@ export function invitePage({ invite, client, status, outcome }) {
     <p>Chi cura i tuoi social ti ha mandato questo link per leggere le statistiche dei tuoi profili e preparare i report.</p>
     <p class="muted">La password la inserisci su ${where}, non qui. Habitat non pubblica nulla sui tuoi profili.</p>
     ${cards}
-    <footer><p class="muted">Puoi togliere l'accesso quando vuoi dalle impostazioni di ${where.replace(' o su ', ' o di ')}. Il link vale fino al ${esc(day.format(new Date(invite.expiresAt)))}.</p></footer>`);
+    <footer><p class="muted">Puoi togliere l'accesso quando vuoi dalle impostazioni di ${where.replace(' o su ', ' o di ')}. Il link vale fino al ${esc(day.format(new Date(invite.expiresAt)))}.</p>${legalConfigured() ? LEGAL_LINKS : ''}</footer>`);
 }
 
 // Accesso di chi apre Habitat da internet (server/auth.js).
@@ -134,4 +138,67 @@ export function metaPickPage({ invite, client, pick, choice, error }) {
       </fieldset>
       <button type="submit" class="button">Collega gli account scelti</button>
     </form>`);
+}
+
+// Pagine pubbliche richieste da Meta e TikTok: informativa, termini, eliminazione dei dati.
+// Titolare e contatto vengono da LEGAL_OWNER e LEGAL_EMAIL nel file .env: senza, le pagine non esistono.
+const LEGAL_LINKS = '<p class="muted"><a href="/privacy">Informativa privacy</a> · <a href="/termini">Termini del servizio</a> · <a href="/elimina-dati">Eliminazione dei dati</a></p>';
+export const legalConfigured = () => Boolean(process.env.LEGAL_OWNER && process.env.LEGAL_EMAIL);
+
+export function legalPage(kind) {
+  const who = esc(process.env.LEGAL_OWNER);
+  const mail = esc(process.env.LEGAL_EMAIL);
+  const contact = `<a href="mailto:${mail}">${mail}</a>`;
+  const updated = '<p class="muted">Ultimo aggiornamento: 5 novembre 2026.</p>';
+  const pages = {
+    privacy: ['Informativa sulla privacy', `
+      <p>Habitat è lo strumento con cui ${who}, che lavora in proprio, legge le statistiche dei profili social dei suoi clienti per preparare analisi e report. Questa pagina spiega quali dati vengono letti quando autorizzi l'accesso a Instagram, Facebook o TikTok.</p>
+      <h2>Titolare del trattamento</h2>
+      <p>${who}. Contatto per qualsiasi richiesta: ${contact}.</p>
+      <h2>Quali dati vengono letti</h2>
+      <ul>
+        <li>Il nome e l'identificativo del profilo o della Pagina che colleghi.</li>
+        <li>Le statistiche del profilo: follower, copertura, visualizzazioni, interazioni e, quando la piattaforma li fornisce, i dati demografici in forma aggregata.</li>
+        <li>I contenuti che hai pubblicato (didascalia, data, link) con le loro statistiche.</li>
+        <li>Un codice di accesso rilasciato dalla piattaforma, che resta sul server e non compare mai nel browser né nei report.</li>
+        <li>Il numero di follower registrato ogni giorno, a partire dal giorno del collegamento.</li>
+      </ul>
+      <h2>Cosa Habitat non fa</h2>
+      <p>Non legge i messaggi privati, non legge i dati dei singoli follower, non pubblica, non commenta e non mette "mi piace" a nome tuo. Non vende né cede i dati e non li usa per pubblicità o profilazione.</p>
+      <h2>Perché e su quale base</h2>
+      <p>I dati servono solo a preparare le analisi e i report del tuo profilo. La base è il tuo consenso, che dai autorizzando l'accesso sulla piattaforma e puoi ritirare quando vuoi.</p>
+      <h2>Chi vede i dati e per quanto tempo</h2>
+      <p>Li vedono il titolare e chi, nello studio, cura i social del cliente. I dati restano finché l'accesso è attivo. Se revochi l'accesso o chiedi la cancellazione, vengono eliminati entro 30 giorni (vedi <a href="/elimina-dati">Eliminazione dei dati</a>).</p>
+      <h2>I tuoi diritti</h2>
+      <p>Puoi chiedere l'accesso ai dati, la correzione, la cancellazione, la limitazione del trattamento e una copia in formato leggibile scrivendo a ${contact}. Se ritieni che i tuoi diritti non siano rispettati puoi rivolgerti al Garante per la protezione dei dati personali.</p>
+      <h2>Le piattaforme</h2>
+      <p>Instagram e Facebook (Meta) e TikTok trattano i tuoi dati secondo le loro informative. Habitat riceve da loro solo ciò che autorizzi.</p>`],
+    termini: ['Termini del servizio', `
+      <p>Questi termini valgono per chi collega un account social a Habitat con il link ricevuto da ${who}.</p>
+      <h2>Cos'è il servizio</h2>
+      <p>Habitat legge le statistiche dei profili collegati e le usa per analisi e report destinati al titolare del profilo. Non pubblica nulla e non modifica i profili.</p>
+      <h2>Chi può collegare un account</h2>
+      <p>Solo il titolare del profilo, o chi ha la sua autorizzazione, e solo per profili professionali (Business o Creator) o per le Pagine che gestisce.</p>
+      <h2>Cosa autorizzi</h2>
+      <p>Autorizzi la sola lettura dei dati descritti nell'<a href="/privacy">informativa sulla privacy</a>. Puoi togliere l'accesso in qualsiasi momento dalle impostazioni della piattaforma, e Habitat smette subito di leggere i dati.</p>
+      <h2>Precisione dei numeri</h2>
+      <p>I numeri arrivano dalle piattaforme. Quando una piattaforma non fornisce un dato, Habitat lo omette invece di stimarlo. Non si garantisce che i dati siano sempre completi o aggiornati.</p>
+      <h2>Responsabilità e modifiche</h2>
+      <p>Il servizio è offerto così com'è, senza garanzie di disponibilità continua. Questi termini possono cambiare: la versione in vigore è sempre quella su questa pagina. Vale la legge italiana.</p>
+      <h2>Contatti</h2>
+      <p>${who}, ${contact}.</p>`],
+    'elimina-dati': ['Eliminazione dei dati', `
+      <p>Habitat è gestito da ${who}. Puoi interrompere l'accesso e far cancellare i tuoi dati in due passaggi.</p>
+      <h2>1. Togli l'accesso dalla piattaforma</h2>
+      <ul>
+        <li><b>Instagram:</b> nelle impostazioni, sezione "Siti web e app" (o Centro gestione account), rimuovi Habitat.</li>
+        <li><b>Facebook:</b> Impostazioni, "App e siti web", rimuovi Habitat.</li>
+        <li><b>TikTok:</b> Impostazioni e privacy, sezione delle autorizzazioni delle app, rimuovi Habitat.</li>
+      </ul>
+      <p>Da quel momento Habitat non può più leggere nulla.</p>
+      <h2>2. Chiedi la cancellazione dei dati già conservati</h2>
+      <p>Scrivi a ${contact} con oggetto "Eliminazione dati Habitat" e il nome del profilo collegato. Entro 30 giorni vengono cancellati il codice di accesso, le statistiche e lo storico dei follower, e ricevi una conferma per email.</p>`],
+  };
+  const [title, body] = pages[kind];
+  return page(`${title} · Habitat`, `<div class="legal"><h1>${title}</h1>${body}${updated}</div>`);
 }

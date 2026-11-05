@@ -12,7 +12,7 @@ const base = `http://localhost:${port}`;
 const server = spawn(process.execPath, ['server/index.js'], { env: {
   ...process.env, PORT: String(port), DATA_DIR: dataDir,
   // Chiavi finte e fisse: i test non dipendono dal file .env (dotenv non sovrascrive variabili già impostate).
-  META_APP_ID: '', META_APP_SECRET: '', IG_APP_ID: 'ig-id-test', IG_APP_SECRET: 'ig-segreto-test', TIKTOK_CLIENT_KEY: 'chiave-test', TIKTOK_CLIENT_SECRET: 'segreto-test', PUBLIC_URL: '',
+  META_APP_ID: '', META_APP_SECRET: '', LEGAL_OWNER: 'Titolare di Prova', LEGAL_EMAIL: 'privacy@example.test', IG_APP_ID: 'ig-id-test', IG_APP_SECRET: 'ig-segreto-test', TIKTOK_CLIENT_KEY: 'chiave-test', TIKTOK_CLIENT_SECRET: 'segreto-test', PUBLIC_URL: '',
 }, stdio: 'pipe' });
 await new Promise((resolve, reject) => {
   server.stdout.on('data', (d) => { if (String(d).includes('pronto')) resolve(); });
@@ -155,6 +155,15 @@ await check('link cliente: il login parte verso Instagram (senza Facebook)', asy
   assert.ok(loc.searchParams.get('scope').includes('instagram_business_basic'));
   assert.ok(loc.searchParams.get('redirect_uri').endsWith('/oauth/instagram/callback'));
   assert.ok(!loc.href.includes('ig-segreto-test'));
+});
+await check('pagine legali pubbliche via tunnel, con titolare e contatto', async () => {
+  for (const [p, h] of [['privacy', 'Informativa sulla privacy'], ['termini', 'Termini del servizio'], ['elimina-dati', 'Eliminazione dei dati']]) {
+    const r = await fetch(`${base}/${p}`, { headers: viaTunnel });
+    assert.equal(r.status, 200, p);
+    const html = await r.text();
+    assert.ok(html.includes(h) && html.includes('Titolare di Prova') && html.includes('privacy@example.test'), p);
+    assert.ok(!html.includes('\u2014'), 'niente em dash');
+  }
 });
 await check('via tunnel: app, API e login senza link non raggiungibili', async () => {
   assert.equal((await fetch(`${base}/api/clients`, { headers: viaTunnel })).status, 404);

@@ -20,7 +20,7 @@ const app = express();
 // (server/auth.js) si apre anche il login, e dopo la password tutta l'app; senza, da fuori non si entra.
 const LOOPBACK = new Set(['127.0.0.1', '::1', '::ffff:127.0.0.1']);
 const LOCAL_HOST = /^(localhost|127\.0\.0\.1|\[::1\])(:\d+)?$/i;
-const PUBLIC_PATH = /^\/(collega\/[\w-]+(\/meta)?|oauth\/(meta|tiktok|instagram)\/(start|callback)|fonts\/[\w/.-]+)$/;
+const PUBLIC_PATH = /^\/(collega\/[\w-]+(\/meta)?|oauth\/(meta|tiktok|instagram)\/(start|callback)|fonts\/[\w/.-]+|privacy|termini|elimina-dati)$/;
 const LOGIN_PATH = /^\/(login|logout)$/;
 app.use((req, res, next) => {
   const h = req.headers;
@@ -392,6 +392,12 @@ app.delete('/api/invites/:id', wrap(async (req, res) => {
 }));
 
 const sendPage = (res, html, code = 200) => res.status(code).set('Cache-Control', 'no-store').type('html').send(html);
+
+for (const kind of ['privacy', 'termini', 'elimina-dati']) {
+  app.get(`/${kind}`, (_req, res) => (invitePage.legalConfigured()
+    ? sendPage(res, invitePage.legalPage(kind))
+    : res.status(404).type('text').send('Pagina non disponibile.')));
+}
 
 app.get('/collega/:token', wrap(async (req, res) => {
   const invite = await store.getInvite(req.params.token);
