@@ -2,6 +2,7 @@
 // I token restano sul server: il browser riceve solo nomi di Pagine e profili da scegliere.
 import { randomBytes, createHash } from 'node:crypto';
 import * as store from './store.js';
+import * as auth from './auth.js';
 import { graphBase } from './connectors/common.js';
 
 const STATE_TTL = 15 * 60 * 1000;
@@ -36,11 +37,11 @@ export function status() {
   };
 }
 
-// Con un link del cliente si torna alla sua pagina; altrimenti all'app, sempre su localhost
-// (dall'indirizzo pubblico l'app non è raggiungibile).
-const back = (res, outcome, extra = '', invite = null) => res.redirect(303, invite
+// Con un link del cliente si torna alla sua pagina; altrimenti all'app: su localhost, oppure sullo stesso
+// indirizzo se il login è partito da internet con la password.
+const back = (res, outcome, extra = '', invite = null, remote = false) => res.redirect(303, invite
   ? `/collega/${encodeURIComponent(invite)}?esito=${outcome}${extra}`
-  : `${publicUrl() ? localUrl() : ''}/?oauth=${outcome}${extra}#/clienti`);
+  : `${publicUrl() && !remote ? localUrl() : ''}/?oauth=${outcome}${extra}#/clienti`);
 
 // Da internet si avvia un login solo con un link valido, mai indicando un cliente qualsiasi.
 async function startTarget(req) {
@@ -48,8 +49,10 @@ async function startTarget(req) {
     const inv = await store.getInvite(String(req.query.invite));
     return inv ? { clientId: inv.clientId, invite: inv.id } : { expired: String(req.query.invite) };
   }
-  if (!req.isLocal) return { forbidden: true };
-  return { clientId: String(req.query.client || ''), invite: null };
+  // Da internet l'app si apre solo con la password (server/auth.js): chi ha la sessione può collegare qualsiasi cliente.
+  const remote = !req.isLocal;
+  if (remote && !(auth.enabled() && auth.hasSession(req))) return { forbidden: true };
+  return { clientId: String(req.query.client || ''), invite: null, remote };
 }
 
 function refuse(res, t) {
@@ -73,10 +76,10 @@ const META_SCOPES = 'pages_show_list,pages_read_engagement,read_insights,instagr
 export async function metaStart(req, res) {
   const t = await startTarget(req);
   if (refuse(res, t)) return;
-  if (!status().meta.configured) return back(res, 'meta-non-configurato', '', t.invite);
+  if (!status().meta.configured) return back(res, 'meta-non-configurato', '', t.invite, t.remote);
   sweep(pendingStates);
   const state = token();
-  pendingStates.set(state, { platform: 'meta', clientId: t.clientId, invite: t.invite, created: Date.now() });
+  pendingStates.set(state, { platform: 'meta', clientId: t.clientId, invite: t.invite, remote: t.remote, created: Date.now() });
   // Facebook Login for Business: con una configurazione (config_id) i permessi sono quelli scelti sul portale.
   const q = new URLSearchParams({ client_id: env('META_APP_ID'), redirect_uri: metaRedirect(), state, response_type: 'code' });
   if (env('META_CONFIG_ID')) q.set('config_id', env('META_CONFIG_ID'));
@@ -90,7 +93,7 @@ export async function metaCallback(req, res) {
   const entry = pendingStates.get(String(req.query.state || ''));
   if (!entry || entry.platform !== 'meta') return back(res, 'stato-non-valido');
   pendingStates.delete(String(req.query.state));
-  if (req.query.error) return back(res, 'meta-annullato', '', entry.invite);
+  if (req.query.error) return back(res, 'meta-annullato', '', entry.invite, entry.remote);
   try {
     const base = graphBase();
     const short = await json(`${base}/oauth/access_token?${new URLSearchParams({
@@ -114,10 +117,10 @@ export async function metaCallback(req, res) {
         instagram: p.instagram_business_account ? { id: p.instagram_business_account.id, username: p.instagram_business_account.username } : null,
       })),
     });
-    back(res, 'meta-scegli', `&scelta=${id}`, entry.invite);
+    back(res, 'meta-scegli', `&scelta=${id}`, entry.invite, entry.remote);
   } catch (e) {
     console.error('OAuth Meta non riuscito:', e.message);
-    back(res, 'meta-errore', '', entry.invite);
+    back(res, 'meta-errore', '', entry.invite, entry.remote);
   }
 }
 
@@ -164,11 +167,11 @@ const TIKTOK_SCOPES = 'user.info.basic,user.info.stats,video.list';
 export async function tiktokStart(req, res) {
   const t = await startTarget(req);
   if (refuse(res, t)) return;
-  if (!status().tiktok.configured) return back(res, 'tiktok-non-configurato', '', t.invite);
+  if (!status().tiktok.configured) return back(res, 'tiktok-non-configurato', '', t.invite, t.remote);
   sweep(pendingStates);
   const state = token();
   const verifier = randomBytes(48).toString('base64url');
-  pendingStates.set(state, { platform: 'tiktok', clientId: t.clientId, invite: t.invite, verifier, created: Date.now() });
+  pendingStates.set(state, { platform: 'tiktok', clientId: t.clientId, invite: t.invite, remote: t.remote, verifier, created: Date.now() });
   // TikTok documenta la challenge come SHA-256 in esadecimale, non in base64url.
   const challenge = createHash('sha256').update(verifier).digest('hex');
   const q = new URLSearchParams({
@@ -200,7 +203,7 @@ export async function tiktokCallback(req, res) {
   const entry = pendingStates.get(String(req.query.state || ''));
   if (!entry || entry.platform !== 'tiktok') return back(res, 'stato-non-valido');
   pendingStates.delete(String(req.query.state));
-  if (req.query.error) return back(res, 'tiktok-annullato', '', entry.invite);
+  if (req.query.error) return back(res, 'tiktok-annullato', '', entry.invite, entry.remote);
   try {
     const t = await tiktokToken({ code: String(req.query.code || ''), grant_type: 'authorization_code', redirect_uri: tiktokRedirect(), code_verifier: entry.verifier });
     const conn = tiktokConn(t);
@@ -209,13 +212,13 @@ export async function tiktokCallback(req, res) {
       conn.accountLabel = info.data?.user?.display_name || null;
     } catch { /* il nome profilo è facoltativo */ }
     const client = await store.setConnection(entry.clientId, 'tiktok', conn);
-    if (!client) return back(res, 'cliente-non-trovato', '', entry.invite);
+    if (!client) return back(res, 'cliente-non-trovato', '', entry.invite, entry.remote);
     if (!client.handles.tiktok && conn.accountLabel) await store.saveClient({ name: client.name, handles: { ...client.handles, tiktok: conn.accountLabel } }, client.id);
     if (entry.invite) await store.markInviteUsed(entry.invite, 'tiktok');
-    back(res, 'tiktok-collegato', '', entry.invite);
+    back(res, 'tiktok-collegato', '', entry.invite, entry.remote);
   } catch (e) {
     console.error('OAuth TikTok non riuscito:', e.message);
-    back(res, 'tiktok-errore', '', entry.invite);
+    back(res, 'tiktok-errore', '', entry.invite, entry.remote);
   }
 }
 

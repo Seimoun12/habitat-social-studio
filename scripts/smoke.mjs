@@ -236,6 +236,13 @@ await check('percorso API inesistente -> 404 JSON', async () => {
   await check('login: cookie manomesso non vale', async () => {
     assert.equal((await remote('GET', '/api/clients', { headers: { cookie: cookie.slice(0, -2) + 'xx' } })).status, 401);
   });
+  await check('login: il collegamento Meta/TikTok parte solo con la sessione', async () => {
+    assert.equal((await remote('GET', '/oauth/meta/start?client=demo-a')).status, 403);
+    assert.equal((await remote('GET', '/oauth/tiktok/start?client=demo-a')).status, 403);
+    const r = await remote('GET', '/oauth/meta/start?client=demo-a', { headers: { cookie } });
+    assert.equal(r.status, 303);
+    assert.ok(!String(r.headers.location).startsWith('http://localhost'), r.headers.location);
+  });
   await check('login: esci chiude la sessione', async () => {
     const r = await remote('POST', '/logout', { headers: { cookie } });
     assert.equal(r.status, 303);
