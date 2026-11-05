@@ -64,6 +64,10 @@ export function endSession(req, res) {
 
 // Le richieste che scrivono devono arrivare dalla stessa origine (oltre a SameSite=Lax sul cookie).
 export function sameOrigin(req) {
+  // I browser moderni dichiarano da soli da dove parte la richiesta; Origin può essere "null"
+  // quando la pagina ha referrer no-referrer, quindi non è affidabile da solo.
+  const site = req.headers['sec-fetch-site'];
+  if (site) return site === 'same-origin' || site === 'none';
   const origin = req.headers.origin;
   if (!origin) return true;
   try { return new URL(origin).host === req.headers.host; } catch { return false; }

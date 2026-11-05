@@ -209,6 +209,14 @@ await check('percorso API inesistente -> 404 JSON', async () => {
     const r = await remote('POST', '/login', { headers: { ...form, origin: 'https://altro.example' }, body: 'password=password-di-prova' });
     assert.equal(r.status, 403);
   });
+  await check('login: Origin null dello stesso sito (no-referrer) accettato', async () => {
+    const r = await remote('POST', '/login', { headers: { ...form, origin: 'null', 'sec-fetch-site': 'same-origin', 'x-forwarded-for': '192.0.2.44' }, body: 'password=password-di-prova' });
+    assert.equal(r.status, 303);
+  });
+  await check('login: Sec-Fetch-Site cross-site rifiutato', async () => {
+    const r = await remote('POST', '/login', { headers: { ...form, 'sec-fetch-site': 'cross-site', 'x-forwarded-for': '192.0.2.45' }, body: 'password=password-di-prova' });
+    assert.equal(r.status, 403);
+  });
   let cookie = '';
   await check('login: password giusta apre la sessione (HttpOnly, Secure, Lax)', async () => {
     const r = await remote('POST', '/login', { headers: form, body: 'password=password-di-prova' });
