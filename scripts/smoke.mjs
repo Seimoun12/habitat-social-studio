@@ -5,6 +5,7 @@ import { mkdtempSync, rmSync } from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import assert from 'node:assert/strict';
+import { FORMATS } from '../public/js/editor/model.js';
 
 const dataDir = mkdtempSync(path.join(os.tmpdir(), 'smoke-data-'));
 const port = 3800 + Math.floor(Math.random() * 90);
@@ -35,6 +36,22 @@ await check('elenco clienti iniziale', async () => {
   assert.equal(r.status, 200);
   assert.ok(r.body.length >= 1);
 });
+
+for (const [format, preset] of Object.entries(FORMATS)) {
+  await check(`formato ${format}: creazione e salvataggio`, async () => {
+    const design = {
+      clientId: 'demo-a',
+      kind: preset.kind,
+      format,
+      name: `Test ${format}`,
+      doc: { version: 1, w: preset.w, h: preset.h, background: { color: '@background', color2: null, angle: 180 }, layers: [] },
+    };
+    const created = await req('POST', '/api/designs', design);
+    assert.equal(created.status, 201, JSON.stringify(created.body));
+    const saved = await req('PUT', `/api/designs/${created.body.id}`, { ...design, name: `Salvato ${format}` });
+    assert.equal(saved.status, 200, JSON.stringify(saved.body));
+  });
+}
 
 for (const platform of ['instagram', 'facebook', 'tiktok']) {
   for (const preset of ['7d', '30d', '90d']) {

@@ -23,7 +23,7 @@ function parse() {
   return { view: 'home' };
 }
 
-const TITLES = { panoramica: 'Panoramica', analisi: 'Analisi', studio: 'Studio grafico', editor: 'Editor', contenuti: 'Contenuti', appuntamenti: 'Appuntamenti', clienti: 'Clienti' };
+const TITLES = { panoramica: 'Panoramica', analisi: 'Analisi', studio: 'Time to Create', editor: 'Editor', contenuti: 'Contenuti', appuntamenti: 'Appuntamenti', clienti: 'Clienti' };
 
 function updateChrome(r) {
   const clientId = CLIENT_VIEWS.includes(r.view) ? r.id : state.client(state.currentId)?.id || state.clients[0]?.id;

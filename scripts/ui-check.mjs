@@ -17,6 +17,10 @@ const server = spawn(process.execPath, ['server/index.js'], { env: {
   // Login non configurati: il test non dipende dal file .env (dotenv non sovrascrive variabili già impostate).
   META_APP_ID: '', META_APP_SECRET: '', META_CONFIG_ID: '', TIKTOK_CLIENT_KEY: '', TIKTOK_CLIENT_SECRET: '', PUBLIC_URL: '',
 }, stdio: 'pipe' });
+process.once('exit', () => {
+  if (server.exitCode === null && server.signalCode === null) server.kill();
+  rmSync(dataDir, { recursive: true, force: true });
+});
 await new Promise((resolve, reject) => {
   server.stdout.on('data', (d) => { if (String(d).includes('pronto')) resolve(); });
   server.on('exit', (code) => reject(new Error('Il server di prova si è fermato, codice ' + code)));
@@ -251,8 +255,129 @@ await sleep(1500);
 await shot('light-stile.png');
 
 // Editor: post
-await go(`#/cliente/${newId}/studio`, '[data-new="post-4x5"]');
-await page.click('[data-new="post-4x5"]');
+await go(`#/cliente/${newId}/studio`, '.studio-category-grid');
+expect(await page.$eval('h1', (e) => e.textContent.trim() === 'Time to Create'), 'dashboard: titolo Time to Create');
+expect(await page.$eval('.studio-heading p', (e) => e.textContent.trim() === 'Dai forma alle tue idee.'), 'dashboard: sottotitolo richiesto');
+expect((await page.$$('[data-category]')).length === 6, 'dashboard: sei categorie disponibili');
+expect(!(await page.$('#studio-create')), 'dashboard: pulsante Crea un progetto rimosso');
+expect(await page.$eval('#studio-search', (search) => {
+  const subtitle = document.querySelector('.studio-title p').getBoundingClientRect();
+  const searchBox = search.getBoundingClientRect();
+  const categoriesHeading = document.querySelector('#studio-create-heading').getBoundingClientRect();
+  return subtitle.bottom <= searchBox.top && searchBox.bottom <= categoriesHeading.top;
+}), 'dashboard: barra di ricerca fra sottotitolo e categorie');
+await shot('light-time-to-create.png');
+for (const [key, count] of [['social', 14], ['presentations', 3], ['documents', 7], ['video', 4], ['print', 8], ['other', 4]]) {
+  await page.click(`[data-category="${key}"]`);
+  await dialog();
+  expect(await page.$eval('dialog select[name="category"]', (s, expected) => s.value === expected, key), `${key}: selezione del formato aperta dalla categoria`);
+  expect((await page.$$eval('dialog select[name="format"] option', (options) => options.length)) === count, `${key}: formati predefiniti e personalizzato`);
+  await page.keyboard.press('Escape');
+  await closedDialog();
+}
+
+await page.click('[data-templates]');
+await page.waitForSelector('.studio-template');
+expect((await page.$$('.studio-template')).length === 6, 'Template: libreria con anteprime dei modelli disponibili');
+await page.click('[data-use-template="titolo"]');
+await dialog();
+expect(await page.$eval('dialog h2', (e) => e.textContent.includes('Titolo e testo')), 'Template: apre la selezione del formato');
+await page.keyboard.press('Escape');
+await closedDialog();
+await page.click('[data-dashboard]');
+await page.waitForSelector('.studio-category-grid');
+
+await page.click(`.studio-shortcut[href="#/cliente/${newId}/studio/stile"]`);
+await page.waitForSelector('#brand-form');
+ok('Brand Kit: accesso rapido apre lo stile del cliente');
+await page.click('.studio-heading > a');
+await page.waitForSelector('.studio-category-grid');
+await page.click(`.studio-shortcut[href="#/cliente/${newId}/studio/file"]`);
+await page.waitForSelector('#dropzone');
+ok('File e risorse: accesso rapido apre la libreria');
+await page.click('.studio-heading > a');
+await page.waitForSelector('.studio-category-grid');
+
+await page.click('[data-category="presentations"]');
+await dialog();
+expect(await page.$eval('dialog select[name="category"]', (e) => e.value === 'presentations'), 'Categoria Presentazioni: avvia la scelta del formato');
+await page.select('dialog select[name="category"]', 'presentations');
+await page.select('dialog select[name="format"]', 'custom-post');
+await page.$eval('dialog input[name="width"]', (e) => { e.value = '1200'; e.dispatchEvent(new Event('input', { bubbles: true })); });
+await page.$eval('dialog input[name="height"]', (e) => { e.value = '800'; e.dispatchEvent(new Event('input', { bubbles: true })); });
+await page.click('dialog button[type="submit"]');
+await page.waitForSelector('#ed-canvas');
+expect(await page.$eval('.ed-format', (e) => e.textContent.includes('1200×800')), 'Formato personalizzato: apre l’editor alle dimensioni salvate');
+await page.click('.ed-bar a[href*="/studio"]');
+await page.waitForSelector('.studio-category-grid');
+const customDesignId = await page.evaluate((id) => fetch(`/api/designs?clientId=${id}`).then((r) => r.json()).then((items) => items[0].id), newId);
+await page.type('#studio-search', 'Formato personalizzato');
+await page.waitForSelector('.studio-search-results a');
+expect(await page.$eval('.studio-search-results', (e) => e.textContent.includes('Formato personalizzato')), 'Ricerca: filtra i progetti salvati');
+await page.$eval('#studio-search', (e) => { e.value = 'Titolo'; e.dispatchEvent(new Event('input', { bubbles: true })); });
+await page.waitForSelector('[data-search-template="titolo"]');
+expect(await page.$eval('.studio-search-results', (e) => e.textContent.includes('Template')), 'Ricerca: filtra i template reali');
+await page.$eval('#studio-search', (e) => { e.value = ''; e.dispatchEvent(new Event('input', { bubbles: true })); });
+
+await page.click(`[data-design-id="${customDesignId}"] .studio-project-actions summary`);
+await page.click(`[data-design-id="${customDesignId}"] [data-rename]`);
+await dialog();
+await page.$eval('dialog input[name="name"]', (e) => { e.value = 'Bozza rinominata'; });
+await page.click('dialog button[type="submit"]');
+await closedDialog();
+await page.waitForFunction((id) => document.querySelector(`[data-design-id="${id}"] .studio-project-name`)?.textContent === 'Bozza rinominata', {}, customDesignId);
+ok('Progetti recenti: rinomina salvata sul server');
+await page.click(`[data-design-id="${customDesignId}"] .studio-project-actions summary`);
+await page.click(`[data-design-id="${customDesignId}"] [data-duplicate]`);
+await page.waitForFunction(() => document.querySelectorAll('.studio-project').length === 2);
+const duplicateId = await page.evaluate(async (id) => (await fetch(`/api/designs?clientId=${id}`).then((r) => r.json())).find((d) => d.name.includes('(copia)')).id, newId);
+expect(await page.$(`[data-design-id="${duplicateId}"]`), 'Progetti recenti: duplicazione salvata sul server');
+await page.click(`[data-design-id="${customDesignId}"] .studio-project-name`);
+await page.waitForSelector('#ed-canvas');
+ok('Progetti recenti: riapertura di un progetto esistente');
+await page.click('.ed-bar a[href*="/studio"]');
+await page.waitForSelector('.studio-category-grid');
+for (const id of [customDesignId, duplicateId]) {
+  await page.click(`[data-design-id="${id}"] .studio-project-actions summary`);
+  await page.click(`[data-design-id="${id}"] [data-delete]`);
+  await dialog();
+  await page.click('dialog [data-ok]');
+  await closedDialog();
+  await page.waitForFunction((designId) => !document.querySelector(`[data-design-id="${designId}"]`), {}, id);
+}
+expect(await page.$eval('#designs', (e) => e.textContent.includes('I tuoi progetti appariranno qui')), 'Progetti recenti: stato vuoto dopo l’eliminazione');
+
+const createFormatAndCheck = async (format, category, label, size) => {
+  await page.click(`[data-category="${category}"]`);
+  await dialog();
+  await page.select('dialog select[name="format"]', format);
+  await page.click('dialog button[type="submit"]');
+  await page.waitForSelector('#ed-canvas');
+  expect(await page.$eval('.ed-format', (e, expected) => e.textContent.includes(expected), size), `${label}: canvas ${size.replace('×', ' x ')} px`);
+  await page.click('.ed-bar a[href*="/studio"]');
+  await page.waitForSelector('.studio-category-grid');
+};
+await page.click('[data-category="presentations"]');
+await dialog();
+expect(await page.$eval('dialog select[name="format"] option[value="presentation-16x9"]', (e) => e.textContent.includes('1920 x 1080 px')), 'Presentazioni: dimensione 16:9 visibile');
+await page.click('dialog button[type="submit"]');
+await page.waitForSelector('#ed-canvas');
+expect(await page.$eval('.ed-format', (e) => e.textContent.includes('1920×1080')), 'Presentazioni: canvas 16:9 aperto a 1920 x 1080 px');
+await page.click('#ed-schedule');
+await page.waitForSelector('dialog[open] select[name="designId"] option[value]:not([value=""])');
+expect(await page.$eval('dialog select[name="format"]', (s) => s.value === 'Presentazione'), 'Presentazioni: formato corretto nel piano contenuti');
+await page.$eval('dialog input[name="title"]', (i) => { i.value = 'Presentazione di prova'; });
+await page.click('dialog [type="submit"]');
+await closedDialog();
+expect((await toastText()).includes('Contenuto salvato nel piano'), 'Presentazione programmata con il progetto collegato');
+await page.click('.ed-bar a[href*="/studio"]');
+await page.waitForSelector('.studio-category-grid');
+await createFormatAndCheck('story-9x16', 'social', 'Storia Instagram', '1080×1920');
+await createFormatAndCheck('facebook-cover', 'social', 'Copertina Facebook', '851×315');
+await page.click('[data-category="social"]');
+await dialog();
+await page.select('dialog select[name="format"]', 'post-4x5');
+await page.click('dialog button[type="submit"]');
 await page.waitForSelector('#ed-canvas');
 await sleep(500);
 ok('editor post aperto');
@@ -316,10 +441,20 @@ await closedDialog();
 ok('contenuto programmato dall\'editor con il progetto collegato');
 
 // Editor: reel con clip video, foto, testo, riproduzione ed esportazione
-await go(`#/cliente/${newId}/studio`, '[data-new="reel-9x16"]');
+await go(`#/cliente/${newId}/studio`, '.studio-category-grid');
+await page.click('[data-category="video"]');
+await dialog();
+expect(await page.$eval('dialog select[name="format"] option[value="reel-9x16"]', (e) => e.textContent.includes('1080 x 1920 px')), 'Video: formato verticale e dimensioni corrette');
+expect(await page.$eval('dialog select[name="format"] option[value="landscape-16x9"]', (e) => e.textContent.includes('1920 x 1080 px')), 'Video: formato orizzontale e dimensioni corrette');
+await page.keyboard.press('Escape');
+await closedDialog();
+await createFormatAndCheck('landscape-16x9', 'video', 'Video orizzontale', '1920×1080');
 await sleep(500);
-expect(await page.$$eval('.design-thumb img', (l) => l.length >= 1), 'il progetto salvato ha l\'anteprima nella galleria');
-await page.click('[data-new="reel-9x16"]');
+expect(await page.$$eval('.studio-project-preview img', (l) => l.length >= 1), 'il progetto salvato ha l\'anteprima nella galleria');
+await page.click('[data-category="video"]');
+await dialog();
+await page.select('dialog select[name="format"]', 'reel-9x16');
+await page.click('dialog button[type="submit"]');
 await page.waitForSelector('#ed-timeline [data-play]');
 const reelInput = await page.$('#ed-file');
 await reelInput.uploadFile(path.join(media, 'clip-prova.webm'));
@@ -399,23 +534,47 @@ await page.click('#theme-toggle');
 expect(await page.evaluate(() => document.documentElement.dataset.theme === 'dark'), 'interruttore tema -> scuro');
 await sleep(300);
 await shot('dark-panoramica.png');
-await go(`#/cliente/${newId}/studio`, '.design-card');
-await page.click('.design-card a.design-thumb');
+await go(`#/cliente/${newId}/studio`, '.studio-category-grid');
+await noOverflow('dark-time-to-create');
+await shot('dark-time-to-create.png');
+await page.click('.studio-project-preview');
 await page.waitForSelector('#ed-canvas');
 await sleep(800);
 await shot('dark-editor.png', false);
-await page.click('#ed-schedule').catch(() => {});
+await page.click('#ed-schedule');
+await page.waitForSelector('dialog[open]');
 await page.keyboard.press('Escape');
-await page.evaluate(() => { localStorage.setItem('theme', 'light'); });
+await page.waitForFunction(() => !document.querySelector('dialog[open]'));
+await page.click('.ed-bar a[href*="/studio"]');
+await page.waitForFunction(() => location.hash.endsWith('/studio'));
+await page.waitForSelector('.studio-category-grid');
+await page.waitForFunction(() => document.documentElement.dataset.theme === 'dark');
+await page.click('#theme-toggle');
+await page.waitForFunction(() => document.documentElement.dataset.theme !== 'dark');
+expect(await page.evaluate(() => document.documentElement.dataset.theme !== 'dark'), 'interruttore tema -> chiaro');
 
 // Telefono
 await page.setViewport({ width: 390, height: 844, isMobile: true, hasTouch: true });
-for (const [hash, sel, name] of [['#/cliente/demo-a/panoramica', '.metric-strip', 'mobile-panoramica'], ['#/cliente/demo-a/analisi', '.hero-figure', 'mobile-analisi'], ['#/appuntamenti', '#cal', 'mobile-appuntamenti'], ['#/contenuti', '#cal', 'mobile-contenuti'], ['#/clienti', '.client-row', 'mobile-clienti'], [`#/cliente/${newId}/studio`, '.design-card', 'mobile-studio']]) {
+for (const [hash, sel, name] of [['#/cliente/demo-a/panoramica', '.metric-strip', 'mobile-panoramica'], ['#/cliente/demo-a/analisi', '.hero-figure', 'mobile-analisi'], ['#/appuntamenti', '#cal', 'mobile-appuntamenti'], ['#/contenuti', '#cal', 'mobile-contenuti'], ['#/clienti', '.client-row', 'mobile-clienti'], [`#/cliente/${newId}/studio`, '.studio-category-grid', 'mobile-studio']]) {
   await go(hash, sel);
   await sleep(300);
   await noOverflow(name);
+  if (name === 'mobile-studio') {
+    const navOverlaps = await page.evaluate(() => {
+      const links = [...document.querySelectorAll('.nav-scroll .nav-link')].map((e) => e.getBoundingClientRect());
+      return links.some((a, i) => links.slice(i + 1).some((b) => a.left < b.right && a.right > b.left && a.top < b.bottom && a.bottom > b.top));
+    });
+    expect(!navOverlaps, 'mobile Time to Create: navigazione senza voci sovrapposte');
+  }
   await shot(`${name}.png`);
 }
+await go(`#/cliente/${newId}/studio`, '.studio-category-grid');
+await page.click('[data-category="social"]');
+await dialog();
+await noOverflow('mobile-studio-formati-social');
+await shot('mobile-studio-formati.png');
+await page.keyboard.press('Escape');
+await closedDialog();
 await page.evaluate(() => localStorage.setItem('habitat-impostazioni', JSON.stringify({ tutorial: true, tutorialDone: false })));
 await go('#/cliente/demo-a/panoramica', '.metric-strip');
 await page.reload({ waitUntil: 'networkidle0' });
@@ -426,12 +585,21 @@ await sleep(400);
 await noOverflow('mobile-tutorial');
 await shot('mobile-tutorial.png', false);
 await page.keyboard.press('Escape');
-await go(`#/cliente/${newId}/studio`, '.design-card');
-await page.click('.design-card a.design-thumb');
+await go(`#/cliente/${newId}/studio`, '.studio-project');
+await page.click('.studio-project-preview');
 await page.waitForSelector('#ed-canvas');
 await sleep(600);
 await noOverflow('mobile-editor');
 await shot('mobile-editor.png');
+
+for (const [width, height, columns, name] of [[768, 1024, 2, 'tablet-studio'], [1024, 900, 3, 'laptop-studio']]) {
+  await page.setViewport({ width, height });
+  await go(`#/cliente/${newId}/studio`, '.studio-category-grid');
+  await noOverflow(name);
+  const actualColumns = await page.$eval('.studio-category-grid', (grid) => getComputedStyle(grid).gridTemplateColumns.split(' ').length);
+  expect(actualColumns === columns, `${name}: ${columns} colonne`);
+  await shot(`${name}.png`);
+}
 
 expect(!errors.length, `nessun errore JavaScript${errors.length ? `:\n  ${errors.join('\n  ')}` : ''}`);
 

@@ -15,7 +15,7 @@ export async function renderPanoramica(main, client, isCurrent) {
         <p class="heading-copy" id="account-line"></p>
       </div>
       <div class="heading-actions">
-        <a class="button button-outline" href="#/cliente/${encodeURIComponent(client.id)}/studio">Studio grafico</a>
+        <a class="button button-outline" href="#/cliente/${encodeURIComponent(client.id)}/studio">Time to Create</a>
         <button type="button" class="button button-dark" id="open-report"><span class="button-icon download-icon" aria-hidden="true"></span>Scarica report</button>
       </div>
     </div>

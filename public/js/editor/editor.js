@@ -22,7 +22,7 @@ export async function renderEditor(main, client, designId, isCurrent) {
     [design, assets] = await Promise.all([api(`/api/designs/${encodeURIComponent(designId)}`), api(`/api/clients/${encodeURIComponent(client.id)}/assets`)]);
   } catch (e) {
     if (!isCurrent()) return () => {};
-    main.innerHTML = `<div class="state" style="padding:40px"><h2>Progetto non disponibile</h2><p>${esc(e.message)}</p><a class="button button-dark" href="#/cliente/${encodeURIComponent(client.id)}/studio">Torna allo Studio grafico</a></div>`;
+    main.innerHTML = `<div class="state" style="padding:40px"><h2>Progetto non disponibile</h2><p>${esc(e.message)}</p><a class="button button-dark" href="#/cliente/${encodeURIComponent(client.id)}/studio">Torna a Time to Create</a></div>`;
     return () => {};
   }
   if (!isCurrent()) return () => {};
@@ -49,9 +49,9 @@ export async function renderEditor(main, client, designId, isCurrent) {
   main.innerHTML = `
     <div class="editor ${isReel ? 'is-reel' : ''}">
       <header class="ed-bar">
-        <a class="button button-ghost button-small" href="#/cliente/${encodeURIComponent(client.id)}/studio">‹ Studio grafico</a>
+        <a class="button button-ghost button-small" href="#/cliente/${encodeURIComponent(client.id)}/studio">‹ Time to Create</a>
         <label class="ed-name"><span class="visually-hidden">Nome del progetto</span><input type="text" id="ed-name" maxlength="100" value="${esc(name)}"></label>
-        <span class="ed-format">${esc(fmt.label)} · ${fmt.w}×${fmt.h} · ${esc(client.name)}</span>
+        <span class="ed-format">${esc(fmt.label)} · ${doc.w}×${doc.h} · ${esc(client.name)}</span>
         <span class="ed-status" id="ed-status" role="status" aria-live="polite">Salvato</span>
         <span class="ed-spacer"></span>
         <button type="button" class="icon-button" id="ed-undo" aria-label="Annulla" title="Annulla (Ctrl+Z)">↶</button>
@@ -561,7 +561,7 @@ export async function renderEditor(main, client, designId, isCurrent) {
     const bg = doc.background || {};
     props.innerHTML = `
       <div class="ed-props-head"><strong>Pagina</strong></div>
-      <p class="note-muted">${esc(fmt.label)}, ${fmt.w}×${fmt.h} pixel. Seleziona un elemento sulla tela o nel pannello Livelli per modificarlo.</p>
+      <p class="note-muted">${esc(fmt.label)}, ${doc.w}×${doc.h} pixel. Seleziona un elemento sulla tela o nel pannello Livelli per modificarlo.</p>
       ${colorField('Sfondo', 'background.color', bg.color)}
       <div class="ed-checks">${check('background.gradient', Boolean(bg.color2), 'Sfumatura')}</div>
       ${bg.color2 ? `${colorField('Secondo colore', 'background.color2', bg.color2)}${field('Direzione', `<div class="ed-range">${range('background.angle', bg.angle ?? 180, 0, 360, 15)}<span class="ed-val">${bg.angle ?? 180}°</span></div>`)}` : ''}
@@ -664,7 +664,7 @@ export async function renderEditor(main, client, designId, isCurrent) {
       lock: () => { l.locked = !l.locked; commit(); refresh(); },
       delete: () => removeLayer(l.id),
       'replace-image': () => { setTool('file'); toast('Scegli un\'immagine dal pannello File: sostituirà quella selezionata.'); },
-      'use-logo': () => { if (!brand().logoAssetId) { toast('Il cliente non ha ancora un logo: caricalo in Studio grafico, scheda Stile del cliente.'); return; } l.assetId = '@logo'; l.fit = 'contain'; commit(); afterChange(true); },
+      'use-logo': () => { if (!brand().logoAssetId) { toast('Il cliente non ha ancora un logo: caricalo in Time to Create, scheda Stile del cliente.'); return; } l.assetId = '@logo'; l.fit = 'contain'; commit(); afterChange(true); },
       'fill-page': () => { Object.assign(l, { x: 0, y: 0, w: doc.w, h: doc.h, rotation: 0 }); commit(); afterChange(true); },
       'start-here': () => { l.start = round(engine.t, 10); if (l.end != null && l.end <= l.start) l.end = null; commit(); afterChange(true); },
       'end-here': () => { if (engine.t <= (l.start || 0)) { toast('Sposta il cursore dopo il momento in cui il testo compare.'); return; } l.end = round(engine.t, 10); commit(); afterChange(true); },
@@ -832,7 +832,7 @@ export async function renderEditor(main, client, designId, isCurrent) {
       const s = doc.w * 0.3;
       if (sh === 'frame') { const l = imageLayer({ name: 'Riquadro foto', w: s * 1.6, h: s * 1.6 }); l.x = (doc.w - l.w) / 2; l.y = (doc.h - l.h) / 2; addLayer(l, { center: false }); return; }
       if (sh === 'logo') {
-        if (!brand().logoAssetId) { toast('Il cliente non ha ancora un logo: caricalo in Studio grafico, scheda Stile del cliente.'); return; }
+        if (!brand().logoAssetId) { toast('Il cliente non ha ancora un logo: caricalo in Time to Create, scheda Stile del cliente.'); return; }
         const size = await imageSize(assetSrc('@logo', brand()));
         const w = doc.w * 0.3;
         const l = imageLayer({ name: 'Logo', assetId: '@logo', fit: 'contain', w, h: (w * size.h) / size.w });
@@ -1072,7 +1072,7 @@ export async function renderEditor(main, client, designId, isCurrent) {
           <div class="progress" hidden><span></span></div><p class="note-muted" data-progress-text hidden></p>
           <div class="ed-actions"><button type="button" class="button button-dark" data-x="video" ${doc.clips.length ? '' : 'disabled'}>Registra il video</button><button type="button" class="button button-outline" data-x="cover">Copertina PNG (fotogramma attuale)</button></div>
           ${doc.clips.length ? '' : '<p class="form-error">Aggiungi almeno un clip prima di esportare.</p>'}` : `
-          <p class="note-muted">${doc.w}×${doc.h} pixel, la dimensione consigliata da Instagram per questo formato.</p>
+          <p class="note-muted">${doc.w}×${doc.h} pixel, dimensione della pagina.</p>
           <div class="ed-actions"><button type="button" class="button button-dark" data-x="png">PNG</button><button type="button" class="button button-outline" data-x="jpg">JPG</button></div>`}
         <p class="form-error" role="alert" hidden></p>
       </div>

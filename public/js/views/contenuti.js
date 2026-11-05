@@ -3,7 +3,7 @@
 import { api, esc, state, openDialog, closeButton, confirmDialog, toast, isoLocal, PLATFORM_LABEL, platformLetter } from '../lib.js';
 import { mountCalendar } from './calendar.js';
 
-export const CONTENT_FORMATS = ['Post', 'Carosello', 'Storia', 'Reel', 'Video TikTok', 'Video'];
+export const CONTENT_FORMATS = ['Post', 'Carosello', 'Storia', 'Reel', 'Video TikTok', 'Video', 'Presentazione'];
 const STATUS = { bozza: 'Bozza', pronto: 'Pronto da pubblicare', pubblicato: 'Pubblicato' };
 
 export async function renderContenuti(main, isCurrent) {

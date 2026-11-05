@@ -192,7 +192,15 @@ app.get('/media/:id', wrap(async (req, res) => {
 
 // Progetti grafici
 
-const FORMATS = ['post-1x1', 'post-4x5', 'story-9x16', 'reel-9x16', 'landscape-16x9'];
+const FORMATS = [
+  'post-1x1', 'presentation-16x9', 'presentation-4x3', 'post-4x5', 'story-9x16',
+  'reel-cover-9x16', 'carousel-4x5', 'facebook-post', 'facebook-cover', 'linkedin-post',
+  'linkedin-cover', 'tiktok-cover', 'youtube-cover', 'youtube-thumbnail', 'pinterest-pin',
+  'document-a4', 'document-a5', 'report-a4', 'proposal-a4', 'quote-a4', 'resume-a4',
+  'print-a4', 'print-a5', 'brochure-a4', 'poster-a3', 'business-card', 'invitation-a5',
+  'menu-a4', 'logo-square', 'moodboard-16x9', 'web-graphic',
+  'reel-9x16', 'video-square', 'landscape-16x9', 'custom-post', 'custom-video',
+];
 
 function validateDesign(b, creating) {
   if (!b || typeof b.name !== 'string' || !b.name.trim()) return 'Dai un nome al progetto.';
@@ -200,6 +208,12 @@ function validateDesign(b, creating) {
   if (creating && !['post', 'reel'].includes(b.kind)) return 'Tipo di progetto non valido.';
   if ((creating || b.format) && !FORMATS.includes(b.format)) return 'Formato non valido.';
   if (!b.doc || typeof b.doc !== 'object' || !Array.isArray(b.doc.layers)) return 'Il contenuto del progetto non è valido.';
+  if (b.format === 'custom-post' || b.format === 'custom-video') {
+    const { w, h } = b.doc;
+    if (!Number.isInteger(w) || !Number.isInteger(h) || w < 1 || h < 1 || w > 10000 || h > 10000 || w * h > 25000000) {
+      return 'Le dimensioni personalizzate devono essere intere, inferiori a 10.000 px per lato e non superare 25 megapixel.';
+    }
+  }
   return null;
 }
 
@@ -253,7 +267,7 @@ app.delete('/api/designs/:id', wrap(async (req, res) => {
 
 // Contenuti programmati
 
-const CONTENT_FORMATS = ['Post', 'Carosello', 'Storia', 'Reel', 'Video TikTok', 'Video'];
+const CONTENT_FORMATS = ['Post', 'Carosello', 'Storia', 'Reel', 'Video TikTok', 'Video', 'Presentazione', 'Documento'];
 
 async function validateContent(b) {
   if (!b || typeof b.title !== 'string' || !b.title.trim()) return 'Scrivi un titolo interno.';

@@ -126,7 +126,7 @@ kbd { padding: 1px 5px; border: 1px solid var(--line); border-bottom-width: 2px;
   .ed-format { display: none; }
 }
 
-/* Nell'editor la barra laterale dell'app lascia spazio alla tela: si torna indietro dal link "Studio grafico". */
+/* Nell'editor la barra laterale dell'app lascia spazio alla tela: si torna indietro dal link "Time to Create". */
 .app-shell.is-editing { grid-template-columns: minmax(0, 1fr); }
 .app-shell.is-editing .sidebar { display: none; }
 :root[data-theme="dark"] .sw { border-color: var(--control-line); }

@@ -11,7 +11,7 @@ For social media managers coordinating several clients across Instagram, Faceboo
 ## Visual system
 - Core colors: forest green `#173a32`, soft paper `#f6f7f0`, and ink `#17231f`. Acid leaf `#c8ec68` is the single accent, reserved for selected navigation, primary "create" actions and the selected editor tool. Download and report actions use the ink button, so leaf always means "this is where you are or what you add next".
 - `DM Sans` carries dense controls and data legibly. `Playfair Display` gives client, section and report headings an editorial voice that separates the workspace from generic analytics software. Both are served locally (`@fontsource`) so the app and the PDF work offline and look the same.
-- The main frame is a compact studio rail beside a fluid work area. The rail has two groups: CLIENTE (Panoramica, Analisi, Studio grafico, which follow the client switcher) and STUDIO · TUTTI I CLIENTI (Contenuti, Appuntamenti, Clienti), so it is always clear which pages change with the selected client.
+- The main frame is a compact studio rail beside a fluid work area. The rail has two groups: CLIENTE (Panoramica, Analisi, Time to Create, which follow the client switcher) and STUDIO · TUTTI I CLIENTI (Contenuti, Appuntamenti, Clienti), so it is always clear which pages change with the selected client.
 - Small uppercase eyebrows (10px, 1px tracking) carry context only, "CLIENTE · SEZIONE", so the large Playfair title can stay a sentence. They never repeat the title.
 - Navigation glyphs are drawn in CSS from the same 1.5px line as the chart axes: they belong to the studio, not to an icon library, and each one maps to its page (sheet, chart, frame, list, calendar, person).
 - The wordmark mark is a lowercase "h." on a leaf petal shape, the initial of Habitat (the prototype still carried the "b." of an earlier name).
@@ -22,9 +22,14 @@ For social media managers coordinating several clients across Instagram, Faceboo
 - Dark theme: the paper becomes a deep forest, leaf replaces forest green as the emphasis color so contrast stays AA. It follows the system preference until the user picks one.
 
 ## Editor
-- The editor takes the whole window (the studio rail hides; "‹ Studio grafico" returns) because the canvas is the work. Tools on the left, canvas in the middle on a light checkerboard so transparent areas read as transparent, properties on the right, timeline under the canvas for reels.
+- The editor takes the whole window (the studio rail hides; "‹ Time to Create" returns) because the canvas is the work. Tools on the left, canvas in the middle on a light checkerboard so transparent areas read as transparent, properties on the right, timeline under the canvas for reels.
+- The format picker opens from each category and shows named presets with their pixel dimensions, then opens the existing editor after the user confirms a format.
 - Client style colors appear as round swatches before any custom color: the fastest choice is always the on-brand one. Templates are drawn live with the client's colors, fonts and logo.
 - Selection uses the focus green outline with white square handles and a leaf rotation handle; snapping guides are magenta because they must never be confused with content colors.
+
+## Time to Create
+- Six equally weighted, three-column category buttons make format choice the primary action; the rule-separated workspace links stay quieter, and the recent-project list keeps names, previews, dates and actions scannable.
+- Compact line icons depict the content type they launch; the familiar outlines distinguish formats without adding another color or icon library.
 
 ## Liveliness dials
 ENERGY 2 / RHYTHM 2 / MOTION 1. Motion is limited to brief state transitions (menu opening, toast, button lift) and to the animations users add to their own reels. `prefers-reduced-motion` removes interface motion.

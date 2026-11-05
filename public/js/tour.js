@@ -12,13 +12,13 @@ const clientHash = (view) => {
 // Senza un elemento visibile il riquadro compare al centro.
 const STEPS = [
   { title: 'Ti do il benvenuto in Habitat', text: 'Qui segui i social di tutti i clienti: numeri, report, grafiche e calendari. In un paio di minuti vedi dove si trova ogni cosa. Puoi chiudere quando vuoi e rivederlo da Impostazioni.' },
-  { route: () => clientHash('panoramica'), target: '#client-switcher', title: 'Il cliente su cui lavori', text: 'Scegli il cliente da questo menu. Panoramica, Analisi e Studio grafico mostrano sempre il cliente scelto qui.', needsClient: true },
-  { target: '[aria-labelledby="nav-client-label"]', title: 'Le pagine del cliente', text: 'Panoramica per il quadro veloce, Analisi per tutti i numeri, Studio grafico per creare post e reel con lo stile del cliente.', needsClient: true },
+  { route: () => clientHash('panoramica'), target: '#client-switcher', title: 'Il cliente su cui lavori', text: 'Scegli il cliente da questo menu. Panoramica, Analisi e Time to Create mostrano sempre il cliente scelto qui.', needsClient: true },
+  { target: '[aria-labelledby="nav-client-label"]', title: 'Le pagine del cliente', text: 'Panoramica per il quadro veloce, Analisi per tutti i numeri, Time to Create per creare post, reel e presentazioni con lo stile del cliente.', needsClient: true },
   { target: '#filters', title: 'Canale e periodo', text: 'Scegli Instagram, Facebook o TikTok e il periodo. Ogni numero viene confrontato con il periodo precedente della stessa durata.', needsClient: true },
   { target: '#demo-label', title: 'Dati demo o dati reali', text: 'Finché un canale non è collegato i numeri sono di prova. Lo trovi scritto qui, sopra i numeri e nel PDF, così non finisce per errore in un report vero.', needsClient: true },
   { target: '#open-report', title: 'Il report per il cliente', text: 'Scegli canali, periodo e sezioni e scarichi un PDF con gli stessi numeri che vedi qui. Puoi aggiungere un tuo commento in apertura.', needsClient: true },
-  { route: () => clientHash('studio/progetti'), target: '.new-design', title: 'Post, storie e reel', text: 'Scegli un formato e si apre l\'editor, con modelli già nei colori e nei caratteri del cliente. I reel si esportano in MP4 pronti per Instagram e TikTok.', needsClient: true },
-  { target: '#st-tab-stile', title: 'Lo stile del cliente', text: 'Colori, caratteri e logo si impostano una volta qui. Se li cambi, si aggiornano anche i progetti che li usano.', needsClient: true },
+  { route: () => clientHash('studio'), target: '#studio-search', title: 'Time to Create', text: 'Cerca progetti e modelli. Per iniziare un lavoro, scegli una delle sei categorie.', needsClient: true },
+  { route: () => clientHash('studio/stile'), target: '#brand-form', title: 'Lo stile del cliente', text: 'Colori, caratteri e logo si impostano una volta qui. Se li cambi, si aggiornano anche i progetti che li usano.', needsClient: true },
   { route: () => '#/contenuti', target: '#cal', title: 'Il piano contenuti', text: 'I contenuti programmati di tutti i clienti, a settimana o a mese, con il progetto grafico collegato. La pubblicazione sui social resta manuale.' },
   { target: '[aria-labelledby="nav-studio-label"]', title: 'Le pagine dello studio', text: 'Appuntamenti è il calendario di tutto lo studio, esportabile in Google Calendar o Outlook. In Clienti aggiungi i clienti e colleghi i loro account.' },
   { target: '#settings-open', title: 'Impostazioni', text: 'Qui scegli il tema e puoi spegnere questo tutorial o rivederlo.' },

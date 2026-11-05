@@ -18,7 +18,7 @@ Poi apri http://localhost:3000.
 **Per ogni cliente** (selettore in alto):
 - **Panoramica**: follower, interazioni, visualizzazioni e coinvolgimento con il confronto sul periodo precedente, andamento dei follower, pubblico, contenuti da replicare e da rivedere, prossimi contenuti in programma.
 - **Analisi**: tutti i numeri per canale e periodo (7, 30, 90 giorni o date a scelta), formati, classifiche, genere, età e città. **Scarica report** crea il PDF per il cliente.
-- **Studio grafico**: progetti (post quadrati e verticali, storie, reel e TikTok, video orizzontali), **stile del cliente** (cinque colori, caratteri per titoli e testi, logo, note) e file caricati.
+- **Time to Create**: scegli tra Social media, Presentazioni, Documenti, Video, Grafica per stampa e Altri progetti; crea formati predefiniti o personalizzati nell’editor, gestisci Brand Kit e file, cerca template e progetti recenti, rinomina, duplica o elimina i lavori.
 
 **Per tutto lo studio**:
 - **Contenuti**: piano editoriale a settimana o mese, con il progetto grafico collegato e lo stato (bozza, pronto, pubblicato).
@@ -29,7 +29,7 @@ Al primo avvio un **tutorial** mostra dove si trova ogni cosa. In **Impostazioni
 
 ## Editor grafico
 
-- **Post e storie**: modelli già nello stile del cliente, testi, forme, foto e logo. Si trascina, si ridimensiona, si ruota; annulla e ripeti, aggancio al centro e ai bordi, livelli. Esporta PNG o JPG a 1080 px.
+- **Post e storie**: modelli già nello stile del cliente, testi, forme, foto e logo. Si trascina, si ridimensiona, si ruota; annulla e ripeti, aggancio al centro e ai bordi, livelli. Esporta PNG o JPG alla dimensione del progetto.
 - **Reel e TikTok**: clip video e foto in sequenza con taglio, divisione al cursore, zoom lento, dissolvenza e filtri; testi a tempo con animazioni; musica con volume. Esporta un MP4 1080×1920 (H.264 e AAC) registrato in tempo reale nel browser: un reel di 30 secondi richiede 30 secondi.
 - I colori e i caratteri del cliente sono collegati: se cambi lo stile del cliente, i progetti che li usano si aggiornano.
 - **Programma** mette il progetto nel piano contenuti.
