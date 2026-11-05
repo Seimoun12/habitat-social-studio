@@ -28,6 +28,8 @@ export function applyTheme(pref) {
 export function openSettings({ startTour }) {
   const s = getSettings();
   const pref = themePref();
+  // Da localhost non c'è login; da internet sì, e qui si esce.
+  const remote = !['localhost', '127.0.0.1', '[::1]'].includes(location.hostname);
   const dlg = openDialog(`
     <form novalidate>
       <div class="dlg-head"><div><p class="eyebrow">Habitat</p><h2 id="set-title">Impostazioni</h2></div>${closeButton}</div>
@@ -42,6 +44,7 @@ export function openSettings({ startTour }) {
           <div class="conn-actions"><button type="button" class="button button-outline button-small" data-start-tour ${s.tutorial ? '' : 'disabled'}>Avvia il tutorial adesso</button>
             <span class="note-muted" data-tour-note>${s.tutorial ? (s.tutorialDone ? 'Già visto: puoi rivederlo quando vuoi.' : 'Comparirà al prossimo avvio.') : 'Riattivalo per poterlo rivedere.'}</span></div>
         </fieldset>
+        ${remote ? '<fieldset class="field"><legend>Accesso</legend><button type="submit" class="button button-outline button-small" formaction="/logout" formmethod="post" formnovalidate>Esci da Habitat</button></fieldset>' : ''}
         <p class="note-muted">Le impostazioni valgono per questo browser.</p>
       </div>
       <div class="dlg-foot"><button type="button" class="button button-accent" data-close>Fatto</button></div>
@@ -62,5 +65,5 @@ export function openSettings({ startTour }) {
     toast(on ? 'Tutorial riattivato.' : 'Tutorial disattivato.');
   });
   startBtn.addEventListener('click', () => { dlg.close(); startTour(); });
-  dlg.querySelector('form').addEventListener('submit', (e) => e.preventDefault());
+  dlg.querySelector('form').addEventListener('submit', (e) => { if (!e.submitter?.hasAttribute('formaction')) e.preventDefault(); });
 }

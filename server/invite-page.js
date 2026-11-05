@@ -47,6 +47,8 @@ p { margin: 0 0 12px; }
 fieldset { border: 0; padding: 0; margin: 0 0 16px; }
 legend { font-weight: 700; margin-bottom: 8px; }
 label { display: flex; gap: 10px; align-items: center; min-height: 44px; padding: 0 12px; border: 1px solid var(--line); border-radius: 8px; margin-bottom: 6px; background: #fff; }
+input[type=password] { width: 100%; min-height: 44px; padding: 0 12px; margin-bottom: 14px; border: 1px solid #c5cfc4; border-radius: 8px; background: #fff; color: var(--ink); font: 16px 'DM Sans', system-ui, sans-serif; }
+.field { display: block; min-height: 0; padding: 0; border: 0; background: none; margin: 0 0 6px; font-weight: 700; }
 input[type=radio] { width: 18px; height: 18px; accent-color: var(--forest); }
 footer { margin-top: 28px; }
 `;
@@ -91,6 +93,19 @@ export function invitePage({ invite, client, status, outcome }) {
     <p class="muted">La password la inserisci su ${where}, non qui. Habitat non pubblica nulla sui tuoi profili.</p>
     ${cards}
     <footer><p class="muted">Puoi togliere l'accesso quando vuoi dalle impostazioni di ${where.replace(' o su ', ' o di ')}. Il link vale fino al ${esc(day.format(new Date(invite.expiresAt)))}.</p></footer>`);
+}
+
+// Accesso di chi apre Habitat da internet (server/auth.js).
+export function loginPage({ error } = {}) {
+  return page('Accedi · Habitat', `
+    <h1>Accedi a Habitat</h1>
+    <p>Spazio di lavoro dello studio. Inserisci la password per continuare.</p>
+    ${error ? `<p class="note err" role="alert">${esc(error)}</p>` : ''}
+    <form method="post" action="/login" class="card">
+      <label class="field" for="password">Password</label>
+      <input id="password" type="password" name="password" autocomplete="current-password" required autofocus>
+      <button type="submit" class="button">Entra</button>
+    </form>`);
 }
 
 // Dopo l'accesso a Facebook: quale Pagina e quale account Instagram collegare.

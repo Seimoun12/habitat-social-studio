@@ -11,6 +11,7 @@ Nato dalla fusione di due progetti: la grafica e la struttura di Habitat, le fun
 - **Mai numeri inventati presentati come reali.** I dati demo restano etichettati come tali, a schermo e nel PDF.
 - **I token di accesso non escono mai dal server** (`publicClient` in `server/store.js`, `metaPending` in `server/oauth.js`). Non loggarli.
 - **Dall'esterno si vede solo il link del cliente.** Il filtro in cima a `server/index.js` lascia passare da tunnel o rete solo `/collega/*`, il login e i caratteri; un login senza link valido parte solo da localhost. Ogni nuova rotta pubblica va aggiunta lì di proposito.
+  Se `HABITAT_PASSWORD_HASH` è impostato (`server/auth.js`, `npm run password`) si apre anche `/login`: con la sessione firmata passa tutta l'app, da localhost non serve mai. Senza l'hash il comportamento è quello di prima.
 - Il calendario appuntamenti è dello studio: non si filtra mai in automatico per il cliente selezionato.
 - Niente em dash (—) nei testi visibili.
 
@@ -30,6 +31,7 @@ server/
   index.js        API Express, file statici, caricamenti (corpo = file), /media/:id
   store.js        archivio JSON in data/db.json: clienti (+ stile), appuntamenti, contenuti,
                   progetti grafici, file; file in data/uploads, anteprime in data/thumbs
+  auth.js         password per l'accesso da internet: scrypt, cookie firmato, limite ai tentativi
   oauth.js        login Meta e TikTok (PKCE), scelta Pagina/account, rinnovo token TikTok
   invite-page.js  pagina pubblica /collega/:link per il cliente (HTML dal server, senza script)
   analytics.js    UNICO punto di calcolo: periodo + confronto, totali, coinvolgimento, formati, classifiche

@@ -164,6 +164,103 @@ await check('percorso API inesistente -> 404 JSON', async () => {
   assert.ok(r.body.error);
 });
 
+// Login da internet: secondo server con HABITAT_PASSWORD_HASH, richieste "da fuori" (Host e x-forwarded-for).
+{
+  const { hashPassword } = await import('../server/auth.js');
+  const http = await import('node:http');
+  const authPort = port + 100;
+  const authDir = mkdtempSync(path.join(os.tmpdir(), 'smoke-auth-'));
+  const authServer = spawn(process.execPath, ['server/index.js'], { env: {
+    ...process.env, PORT: String(authPort), DATA_DIR: authDir, PUBLIC_URL: '', META_APP_ID: '',
+    HABITAT_PASSWORD_HASH: await hashPassword('password-di-prova'), SESSION_SECRET: 'segreto-di-prova',
+  }, stdio: 'pipe' });
+  await new Promise((resolve, reject) => {
+    authServer.stdout.on('data', (d) => { if (String(d).includes('pronto')) resolve(); });
+    authServer.on('exit', (code) => reject(new Error('Server con login fermo, codice ' + code)));
+  });
+  const remote = (method, url, { headers = {}, body } = {}) => new Promise((resolve, reject) => {
+    const r = http.request({ host: '127.0.0.1', port: authPort, method, path: url, headers: {
+      host: 'habitat.test', 'x-forwarded-for': '203.0.113.7', 'x-forwarded-proto': 'https', ...headers } }, (res) => {
+      let data = ''; res.on('data', (c) => { data += c; }); res.on('end', () => resolve({ status: res.statusCode, headers: res.headers, text: data }));
+    });
+    r.on('error', reject); r.end(body);
+  });
+  const form = { 'content-type': 'application/x-www-form-urlencoded' };
+
+  await check('login: senza sessione si viene mandati a /login', async () => {
+    const r = await remote('GET', '/');
+    assert.equal(r.status, 303);
+    assert.equal(r.headers.location, '/login');
+  });
+  await check('login: API senza sessione -> 401', async () => {
+    assert.equal((await remote('GET', '/api/clients')).status, 401);
+  });
+  await check('login: pagina di accesso senza script', async () => {
+    const r = await remote('GET', '/login');
+    assert.equal(r.status, 200);
+    assert.ok(r.text.includes('type="password"') && !r.text.includes('<script'));
+  });
+  await check('login: password sbagliata -> 401 e nessun cookie', async () => {
+    const r = await remote('POST', '/login', { headers: form, body: 'password=sbagliata' });
+    assert.equal(r.status, 401);
+    assert.ok(!r.headers['set-cookie']);
+  });
+  await check('login: origine diversa rifiutata', async () => {
+    const r = await remote('POST', '/login', { headers: { ...form, origin: 'https://altro.example' }, body: 'password=password-di-prova' });
+    assert.equal(r.status, 403);
+  });
+  let cookie = '';
+  await check('login: password giusta apre la sessione (HttpOnly, Secure, Lax)', async () => {
+    const r = await remote('POST', '/login', { headers: form, body: 'password=password-di-prova' });
+    assert.equal(r.status, 303);
+    const c = r.headers['set-cookie'][0];
+    assert.ok(/HttpOnly/.test(c) && /Secure/.test(c) && /SameSite=Lax/.test(c));
+    cookie = c.split(';')[0];
+  });
+  await check('login: con la sessione si usano pagina e API', async () => {
+    assert.equal((await remote('GET', '/api/clients', { headers: { cookie } })).status, 200);
+    assert.equal((await remote('GET', '/', { headers: { cookie } })).status, 200);
+  });
+  await check('login: scrittura da un altro sito rifiutata anche con sessione', async () => {
+    const r = await remote('POST', '/api/clients', { headers: { cookie, origin: 'https://altro.example', 'content-type': 'application/json' }, body: '{}' });
+    assert.equal(r.status, 403);
+  });
+  await check('login: cookie manomesso non vale', async () => {
+    assert.equal((await remote('GET', '/api/clients', { headers: { cookie: cookie.slice(0, -2) + 'xx' } })).status, 401);
+  });
+  await check('login: esci chiude la sessione', async () => {
+    const r = await remote('POST', '/logout', { headers: { cookie } });
+    assert.equal(r.status, 303);
+    assert.ok(/Max-Age=0/.test(r.headers['set-cookie'][0]));
+  });
+  await check('login: il link del cliente resta pubblico', async () => {
+    assert.equal((await remote('GET', '/collega/inesistente')).status, 404);
+    assert.ok((await remote('GET', '/collega/inesistente')).text.includes('non più valido'));
+  });
+  await check('login: dopo 5 errori si aspetta, anche con la password giusta', async () => {
+    const other = { 'x-forwarded-for': '198.51.100.9' };
+    for (let i = 0; i < 5; i++) await remote('POST', '/login', { headers: { ...form, ...other }, body: 'password=no' });
+    const r = await remote('POST', '/login', { headers: { ...form, ...other }, body: 'password=password-di-prova' });
+    assert.equal(r.status, 429);
+    assert.ok(r.headers['retry-after']);
+  });
+  await check('login: da localhost non serve la password', async () => {
+    const local = await fetch(`http://localhost:${authPort}/api/clients`);
+    assert.equal(local.status, 200);
+  });
+  authServer.kill();
+  rmSync(authDir, { recursive: true, force: true });
+}
+
+await check('senza password configurata /login da fuori resta non disponibile', async () => {
+  const http = await import('node:http');
+  const status = await new Promise((resolve, reject) => {
+    const r = http.request({ host: '127.0.0.1', port, path: '/login', headers: { host: 'habitat.test', 'x-forwarded-for': '203.0.113.7' } }, (res) => { res.resume(); resolve(res.statusCode); });
+    r.on('error', reject); r.end();
+  });
+  assert.equal(status, 404);
+});
+
 server.kill();
 rmSync(dataDir, { recursive: true, force: true });
 console.log(`\n${passed} ok, ${failures.length} falliti`);

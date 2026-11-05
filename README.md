@@ -13,6 +13,8 @@ npm start
 
 Poi apri http://localhost:3000.
 
+**Su un server (VPS)**: per entrare da internet imposta una password. `npm run password` la chiede senza mostrarla e stampa la riga `HABITAT_PASSWORD_HASH=...` da mettere in `.env`, insieme a una `SESSION_SECRET` lunga e casuale. Senza queste righe da fuori si vede solo il link del cliente. Metti Habitat dietro https (nginx o simili) che inoltri `X-Forwarded-For` e `X-Forwarded-Proto`. Dopo 5 password sbagliate si aspetta 15 minuti.
+
 ## Cosa c'è
 
 **Per ogni cliente** (selettore in alto):

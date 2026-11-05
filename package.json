@@ -9,6 +9,7 @@
     "start": "node server/index.js",
     "dev": "node --watch server/index.js",
     "check": "node scripts/smoke.mjs",
+    "password": "node scripts/password.mjs",
     "ui-check": "node scripts/ui-check.mjs"
   },
   "engines": {

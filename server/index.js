@@ -7,6 +7,7 @@ import { randomUUID } from 'node:crypto';
 import * as store from './store.js';
 import * as oauth from './oauth.js';
 import * as invitePage from './invite-page.js';
+import * as auth from './auth.js';
 import { getAnalytics, PLATFORMS } from './analytics.js';
 import { buildSummary } from './summary.js';
 import { renderReport, REPORT_SECTIONS } from './report.js';
@@ -15,15 +16,26 @@ import { resolveRange, isIsoDate } from './dates.js';
 const app = express();
 
 // Locale = da questo computer, senza passare da un tunnel (che aggiunge le intestazioni forwarded).
-// Tutto il resto vede solo la pagina del link di collegamento e il login: l'app non ha password.
+// Da fuori si vede solo la pagina del link di collegamento. Se HABITAT_PASSWORD_HASH è impostato
+// (server/auth.js) si apre anche il login, e dopo la password tutta l'app; senza, da fuori non si entra.
 const LOOPBACK = new Set(['127.0.0.1', '::1', '::ffff:127.0.0.1']);
 const LOCAL_HOST = /^(localhost|127\.0\.0\.1|\[::1\])(:\d+)?$/i;
 const PUBLIC_PATH = /^\/(collega\/[\w-]+(\/meta)?|oauth\/(meta|tiktok)\/(start|callback)|fonts\/[\w/.-]+)$/;
+const LOGIN_PATH = /^\/(login|logout)$/;
 app.use((req, res, next) => {
   const h = req.headers;
   req.isLocal = LOOPBACK.has(req.socket.remoteAddress) && LOCAL_HOST.test(h.host || '')
     && !h['x-forwarded-for'] && !h['cf-connecting-ip'] && !h.forwarded;
   if (req.isLocal || PUBLIC_PATH.test(req.path)) return next();
+  if (auth.enabled()) {
+    if (LOGIN_PATH.test(req.path)) return next();
+    if (auth.hasSession(req)) {
+      if (req.method !== 'GET' && req.method !== 'HEAD' && !auth.sameOrigin(req)) return res.status(403).json({ error: 'Richiesta da un altro sito, rifiutata.' });
+      return next();
+    }
+    if (req.path.startsWith('/api/')) return res.status(401).json({ error: 'Accesso richiesto.' });
+    if (req.method === 'GET') return res.redirect(303, '/login');
+  }
   res.status(404).type('text').send('Pagina non disponibile.');
 });
 
@@ -404,6 +416,35 @@ app.post('/collega/:token/meta', express.urlencoded({ extended: false, limit: '8
   }
   res.redirect(303, `/collega/${encodeURIComponent(invite.id)}?esito=meta-collegato`);
 }));
+
+app.get('/login', (req, res) => {
+  if (!auth.enabled() || req.isLocal || auth.hasSession(req)) return res.redirect(303, '/');
+  sendPage(res, invitePage.loginPage());
+});
+
+app.post('/login', express.urlencoded({ extended: false, limit: '2kb' }), wrap(async (req, res) => {
+  if (!auth.enabled()) return res.status(404).type('text').send('Pagina non disponibile.');
+  if (!auth.sameOrigin(req)) return res.status(403).type('text').send('Richiesta da un altro sito, rifiutata.');
+  const key = auth.clientKey(req);
+  const wait = auth.waitSeconds(key);
+  if (wait) {
+    res.set('Retry-After', String(wait));
+    return sendPage(res, invitePage.loginPage({ error: `Troppi tentativi. Riprova tra ${Math.ceil(wait / 60)} minuti.` }), 429);
+  }
+  if (!(await auth.checkPassword(req.body.password))) {
+    auth.recordFail(key);
+    return sendPage(res, invitePage.loginPage({ error: 'Password non corretta.' }), 401);
+  }
+  auth.clearFails(key);
+  auth.startSession(req, res);
+  res.redirect(303, '/');
+}));
+
+app.post('/logout', (req, res) => {
+  if (!auth.sameOrigin(req)) return res.status(403).end();
+  auth.endSession(req, res);
+  res.redirect(303, auth.enabled() ? '/login' : '/');
+});
 
 app.use('/api', (_req, res) => res.status(404).json({ error: 'Percorso API inesistente.' }));
 app.get('*', (_req, res) => res.sendFile(path.resolve('public/index.html')));
