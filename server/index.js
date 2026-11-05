@@ -20,7 +20,7 @@ const app = express();
 // (server/auth.js) si apre anche il login, e dopo la password tutta l'app; senza, da fuori non si entra.
 const LOOPBACK = new Set(['127.0.0.1', '::1', '::ffff:127.0.0.1']);
 const LOCAL_HOST = /^(localhost|127\.0\.0\.1|\[::1\])(:\d+)?$/i;
-const PUBLIC_PATH = /^\/(collega\/[\w-]+(\/meta)?|oauth\/(meta|tiktok)\/(start|callback)|fonts\/[\w/.-]+)$/;
+const PUBLIC_PATH = /^\/(collega\/[\w-]+(\/meta)?|oauth\/(meta|tiktok|instagram)\/(start|callback)|fonts\/[\w/.-]+)$/;
 const LOGIN_PATH = /^\/(login|logout)$/;
 app.use((req, res, next) => {
   const h = req.headers;
@@ -348,6 +348,8 @@ app.delete('/api/appointments/:id', wrap(async (req, res) => {
 app.get('/api/oauth/status', (_req, res) => res.json(oauth.status()));
 app.get('/oauth/meta/start', wrap(oauth.metaStart));
 app.get('/oauth/meta/callback', wrap(oauth.metaCallback));
+app.get('/oauth/instagram/start', wrap(oauth.instagramStart));
+app.get('/oauth/instagram/callback', wrap(oauth.instagramCallback));
 app.get('/oauth/tiktok/start', wrap(oauth.tiktokStart));
 app.get('/oauth/tiktok/callback', wrap(oauth.tiktokCallback));
 
@@ -364,7 +366,7 @@ app.post('/api/oauth/meta/pending/:id', wrap(async (req, res) => {
 
 // Link di collegamento per il cliente
 
-const INVITE_PLATFORMS = ['meta', 'tiktok'];
+const INVITE_PLATFORMS = ['meta', 'instagram', 'tiktok'];
 const publicInvite = (x) => ({
   id: x.id, url: `${oauth.inviteBase()}/collega/${x.id}`, platforms: x.platforms, created: x.created, expiresAt: x.expiresAt, used: x.used,
 });
@@ -379,7 +381,7 @@ app.post('/api/clients/:id/invites', wrap(async (req, res) => {
   if (!platforms.length) return bad(res, 'Scegli almeno un canale da collegare.');
   const st = oauth.status();
   const off = platforms.filter((p) => !st[p].configured);
-  if (off.length) return bad(res, `Login ${off.map((p) => (p === 'meta' ? 'Meta' : 'TikTok')).join(' e ')} non configurato nel file .env.`);
+  if (off.length) return bad(res, `Login ${off.map((p) => ({ meta: 'Meta', instagram: 'Instagram', tiktok: 'TikTok' })[p]).join(' e ')} non configurato nel file .env.`);
   const x = await store.createInvite(req.params.id, platforms);
   if (!x) return notFound(res, 'Cliente');
   res.status(201).json(publicInvite(x));

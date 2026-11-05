@@ -26,6 +26,15 @@ Limiti delle API Meta, mostrati anche nella dashboard:
 - Meta ha ritirato i dati demografici delle Pagine Facebook;
 - lo storico dei follower totali si costruisce dal giorno del collegamento.
 
+## Solo Instagram, senza Facebook
+
+Per i clienti senza Pagina Facebook c'è il login Instagram (`/oauth/instagram/start`). L'account deve essere professionale (Business o Creator).
+
+1. Nell'app Meta apri **Casi d'uso → API Instagram → Configurazione dell'API con Instagram Login** e copia **ID app Instagram** e **Chiave segreta app Instagram**: sono diversi da META_APP_ID e META_APP_SECRET.
+2. Nello stesso pannello, tra gli URI di reindirizzamento OAuth, aggiungi `PUBLIC_URL/oauth/instagram/callback`.
+3. Permessi: `instagram_business_basic` e `instagram_business_manage_insights`. In modalità sviluppo funziona con i ruoli dell'app e gli utenti test Instagram (Ruoli dell'app → Ruoli → aggiungi tester Instagram, che il cliente deve accettare dall'app Instagram).
+4. In `.env` scrivi `IG_APP_ID` e `IG_APP_SECRET`, riavvia. Il token dura 60 giorni e Habitat lo rinnova da solo.
+
 ## Login TikTok
 
 1. Crea un'app su [TikTok for Developers](https://developers.tiktok.com/) e aggiungi **Login Kit** e **Display API** con gli scope `user.info.basic`, `user.info.stats`, `video.list`.

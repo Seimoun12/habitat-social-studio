@@ -160,9 +160,12 @@ async function editClient(client, onDone) {
         ? `<a class="button button-dark button-small" href="/oauth/tiktok/start?client=${cid}">${conns.tiktok.hasToken ? 'Ricollega con TikTok' : 'Collega con TikTok'}</a>`
         : '<p class="note-muted">Login TikTok non configurato: servono TIKTOK_CLIENT_KEY e TIKTOK_CLIENT_SECRET nel file .env. Apri la guida qui sotto.</p>';
     }
-    return status.meta?.configured
+    const igOnly = p === 'instagram' && status.instagram?.configured
+      ? `<a class="button button-dark button-small" href="/oauth/instagram/start?client=${cid}">${conns.instagram.hasToken ? 'Ricollega con Instagram' : 'Collega con Instagram'}</a><span class="note-muted">Senza Pagina Facebook: basta l'account Instagram professionale.</span> `
+      : '';
+    return igOnly + (status.meta?.configured
       ? `<a class="button button-dark button-small" href="/oauth/meta/start?client=${cid}">${conns[p].hasToken ? 'Ricollega con Meta' : 'Collega con Meta'}</a><span class="note-muted">Un solo login collega Pagina Facebook e Instagram.</span>`
-      : '<p class="note-muted">Login Meta non configurato: servono META_APP_ID e META_APP_SECRET nel file .env. Apri la guida nel blocco Instagram.</p>';
+      : '<p class="note-muted">Login Meta non configurato: servono META_APP_ID e META_APP_SECRET nel file .env. Apri la guida nel blocco Instagram.</p>');
   };
   const connBlock = (p) => {
     const info = client?.connection?.[p];
@@ -273,7 +276,7 @@ async function pickMetaAccounts(pendingId, onDone) {
 }
 
 // Link da mandare al cliente: lo apre dal suo telefono, fa l'accesso e i canali si collegano qui.
-const INVITE_LABEL = { meta: 'Facebook e Instagram', tiktok: 'TikTok' };
+const INVITE_LABEL = { meta: 'Facebook e Instagram', instagram: 'Solo Instagram', tiktok: 'TikTok' };
 const longDay = new Intl.DateTimeFormat('it-IT', { day: 'numeric', month: 'long' });
 
 async function inviteDialog(client) {

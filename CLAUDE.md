@@ -32,7 +32,7 @@ server/
   store.js        archivio JSON in data/db.json: clienti (+ stile), appuntamenti, contenuti,
                   progetti grafici, file; file in data/uploads, anteprime in data/thumbs
   auth.js         password per l'accesso da internet: scrypt, cookie firmato, limite ai tentativi
-  oauth.js        login Meta e TikTok (PKCE), scelta Pagina/account, rinnovo token TikTok
+  oauth.js        login Meta, Instagram (senza Pagina Facebook) e TikTok (PKCE), scelta Pagina/account, rinnovo token
   invite-page.js  pagina pubblica /collega/:link per il cliente (HTML dal server, senza script)
   analytics.js    UNICO punto di calcolo: periodo + confronto, totali, coinvolgimento, formati, classifiche
   summary.js      frasi della sintesi, costruite dai numeri (niente modelli generativi)

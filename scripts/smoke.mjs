@@ -12,7 +12,7 @@ const base = `http://localhost:${port}`;
 const server = spawn(process.execPath, ['server/index.js'], { env: {
   ...process.env, PORT: String(port), DATA_DIR: dataDir,
   // Chiavi finte e fisse: i test non dipendono dal file .env (dotenv non sovrascrive variabili già impostate).
-  META_APP_ID: '', META_APP_SECRET: '', TIKTOK_CLIENT_KEY: 'chiave-test', TIKTOK_CLIENT_SECRET: 'segreto-test', PUBLIC_URL: '',
+  META_APP_ID: '', META_APP_SECRET: '', IG_APP_ID: 'ig-id-test', IG_APP_SECRET: 'ig-segreto-test', TIKTOK_CLIENT_KEY: 'chiave-test', TIKTOK_CLIENT_SECRET: 'segreto-test', PUBLIC_URL: '',
 }, stdio: 'pipe' });
 await new Promise((resolve, reject) => {
   server.stdout.on('data', (d) => { if (String(d).includes('pronto')) resolve(); });
@@ -122,9 +122,9 @@ await check('link cliente: senza canali o con login non configurato -> 400', asy
   assert.equal((await req('POST', '/api/clients/demo-a/invites', { platforms: ['meta'] })).status, 400);
 });
 await check('link cliente: crea link TikTok', async () => {
-  const r = await req('POST', '/api/clients/demo-a/invites', { platforms: ['tiktok', 'nulla'] });
+  const r = await req('POST', '/api/clients/demo-a/invites', { platforms: ['tiktok', 'instagram', 'nulla'] });
   assert.equal(r.status, 201);
-  assert.deepEqual(r.body.platforms, ['tiktok']);
+  assert.deepEqual(r.body.platforms, ['tiktok', 'instagram']);
   assert.match(r.body.url, /\/collega\/[\w-]{20,}$/);
   inviteId = r.body.id;
   assert.equal((await req('GET', '/api/clients/demo-a/invites')).body.length, 1);
@@ -135,6 +135,7 @@ await check('link cliente: pagina pubblica, anche via tunnel', async () => {
   const html = await r.text();
   assert.ok(html.includes('Collega i tuoi account'));
   assert.ok(html.includes(`/oauth/tiktok/start?invite=${inviteId}`));
+  assert.ok(html.includes(`/oauth/instagram/start?invite=${inviteId}`) && html.includes('Non serve Facebook'));
   assert.ok(!html.includes('segreto-test'));
 });
 await check('link cliente: il login parte verso TikTok', async () => {
@@ -145,10 +146,21 @@ await check('link cliente: il login parte verso TikTok', async () => {
   assert.equal(loc.searchParams.get('client_key'), 'chiave-test');
   assert.ok(loc.searchParams.get('code_challenge'));
 });
+await check('link cliente: il login parte verso Instagram (senza Facebook)', async () => {
+  const r = await fetch(`${base}/oauth/instagram/start?invite=${inviteId}`, { headers: viaTunnel, redirect: 'manual' });
+  assert.equal(r.status, 303);
+  const loc = new URL(r.headers.get('location'));
+  assert.equal(loc.host, 'www.instagram.com');
+  assert.equal(loc.searchParams.get('client_id'), 'ig-id-test');
+  assert.ok(loc.searchParams.get('scope').includes('instagram_business_basic'));
+  assert.ok(loc.searchParams.get('redirect_uri').endsWith('/oauth/instagram/callback'));
+  assert.ok(!loc.href.includes('ig-segreto-test'));
+});
 await check('via tunnel: app, API e login senza link non raggiungibili', async () => {
   assert.equal((await fetch(`${base}/api/clients`, { headers: viaTunnel })).status, 404);
   assert.equal((await fetch(`${base}/`, { headers: viaTunnel })).status, 404);
   assert.equal((await fetch(`${base}/oauth/tiktok/start?client=demo-a`, { headers: viaTunnel, redirect: 'manual' })).status, 403);
+  assert.equal((await fetch(`${base}/oauth/instagram/start?client=demo-a`, { headers: viaTunnel, redirect: 'manual' })).status, 403);
 });
 await check('link cliente: annullato non si apre più', async () => {
   assert.equal((await req('DELETE', `/api/invites/${inviteId}`)).status, 204);

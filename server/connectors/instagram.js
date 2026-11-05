@@ -9,13 +9,19 @@ const P = 'Instagram';
 
 const FORMAT = { REELS: 'Reel', CAROUSEL_ALBUM: 'Carosello', IMAGE: 'Foto', VIDEO: 'Video', STORY: 'Storia' };
 
-function url(path, params) {
-  const u = new URL(graphBase() + path);
-  for (const [k, v] of Object.entries(params)) u.searchParams.set(k, v);
-  return u;
-}
+// Con Instagram Login (conn.source) le stesse chiamate vanno a graph.instagram.com; con il login Facebook a graph.facebook.com.
+const builder = (conn) => {
+  const base = conn.source === 'instagram-login'
+    ? `https://graph.instagram.com/${process.env.META_GRAPH_VERSION || 'v25.0'}`
+    : graphBase();
+  return (path, params) => {
+    const u = new URL(base + path);
+    for (const [k, v] of Object.entries(params)) u.searchParams.set(k, v);
+    return u;
+  };
+};
 
-async function listMedia(id, token, from, to) {
+async function listMedia(id, token, from, to, url) {
   const out = [];
   let next = url(`/${id}/media`, {
     fields: 'id,caption,media_type,media_product_type,timestamp,permalink,like_count,comments_count',
@@ -36,7 +42,7 @@ async function listMedia(id, token, from, to) {
   return out;
 }
 
-async function mediaInsights(m, token) {
+async function mediaInsights(m, token, url) {
   const metrics = 'views,reach,likes,comments,shares,saved';
   try {
     const res = await getJson(P, url(`/${m.id}/insights`, { metric: metrics, access_token: token }));
@@ -47,7 +53,7 @@ async function mediaInsights(m, token) {
   }
 }
 
-async function dailyMetric(id, token, metric, from, to) {
+async function dailyMetric(id, token, metric, from, to, url) {
   const out = {};
   // L'API accetta al massimo 30 giorni per richiesta.
   for (let start = from; start <= to; start = addDays(start, 30)) {
@@ -59,7 +65,7 @@ async function dailyMetric(id, token, metric, from, to) {
   return out;
 }
 
-async function demographics(id, token) {
+async function demographics(id, token, url) {
   const read = async (breakdown) => {
     const res = await getJson(P, url(`/${id}/insights`, {
       metric: 'follower_demographics', period: 'lifetime', metric_type: 'total_value', breakdown, access_token: token,
@@ -81,11 +87,12 @@ async function demographics(id, token) {
 
 export async function fetchInstagram(conn, from, to) {
   const { accountId: id, accessToken: token } = conn;
+  const url = builder(conn);
   const warnings = [];
   const account = await getJson(P, url(`/${id}`, { fields: 'username,followers_count', access_token: token }));
 
-  const media = await listMedia(id, token, from, to);
-  const insights = await mapLimit(media, 4, (m) => mediaInsights(m, token));
+  const media = await listMedia(id, token, from, to, url);
+  const insights = await mapLimit(media, 4, (m) => mediaInsights(m, token, url));
   const posts = media.map((m, i) => {
     const ins = insights[i];
     return {
@@ -105,7 +112,7 @@ export async function fetchInstagram(conn, from, to) {
 
   const accountDaily = {};
   try {
-    const reach = await dailyMetric(id, token, 'reach', from, to);
+    const reach = await dailyMetric(id, token, 'reach', from, to, url);
     for (const [d, v] of Object.entries(reach)) accountDaily[d] = { ...accountDaily[d], reach: v };
   } catch (e) { warnings.push(`Copertura giornaliera non disponibile (${e.message}).`); }
 
@@ -113,7 +120,7 @@ export async function fetchInstagram(conn, from, to) {
   const earliest = addDays(today(), -30);
   if (to >= earliest) {
     try {
-      const gained = await dailyMetric(id, token, 'follower_count', from > earliest ? from : earliest, to);
+      const gained = await dailyMetric(id, token, 'follower_count', from > earliest ? from : earliest, to, url);
       for (const [d, v] of Object.entries(gained)) accountDaily[d] = { ...accountDaily[d], gained: v };
     } catch (e) { warnings.push(`Nuovi follower non disponibili (${e.message}).`); }
   }
@@ -122,7 +129,7 @@ export async function fetchInstagram(conn, from, to) {
   const unavailable = {
     gainedLost: 'Instagram fornisce i nuovi follower solo per gli ultimi 30 giorni e non indica chi ha smesso di seguire.',
   };
-  try { demo = await demographics(id, token); } catch (e) {
+  try { demo = await demographics(id, token, url); } catch (e) {
     unavailable.demographics = `Dati demografici non disponibili: ${e.message}. Instagram li mostra solo con almeno 100 follower.`;
   }
 

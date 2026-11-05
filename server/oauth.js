@@ -24,6 +24,7 @@ const localUrl = () => `http://localhost:${port()}`;
 export const inviteBase = () => publicUrl() || localUrl();
 export const metaRedirect = () => env('META_REDIRECT_URI') || `${inviteBase()}/oauth/meta/callback`;
 export const tiktokRedirect = () => env('TIKTOK_REDIRECT_URI') || `${inviteBase()}/oauth/tiktok/callback`;
+export const instagramRedirect = () => env('IG_REDIRECT_URI') || `${inviteBase()}/oauth/instagram/callback`;
 
 export function status() {
   return {
@@ -32,6 +33,8 @@ export function status() {
       configured: Boolean(env('META_APP_ID') && env('META_APP_SECRET')), redirectUri: metaRedirect(),
       appId: env('META_APP_ID') || null, graphVersion: graphVersion(), scopes: META_SCOPES.split(','), configId: Boolean(env('META_CONFIG_ID')),
     },
+    // Instagram Login: app Instagram dentro l'app Meta, con ID e chiave propri. Non richiede una Pagina Facebook.
+    instagram: { configured: Boolean(env('IG_APP_ID') && env('IG_APP_SECRET')), redirectUri: instagramRedirect(), scopes: IG_SCOPES.split(',') },
     tiktok: { configured: Boolean(env('TIKTOK_CLIENT_KEY') && env('TIKTOK_CLIENT_SECRET')), redirectUri: tiktokRedirect(), scopes: TIKTOK_SCOPES.split(',') },
     publicUrl: publicUrl() || null,
   };
@@ -65,7 +68,7 @@ async function json(url, init) {
   let r;
   try { r = await fetch(url, init); } catch { throw new Error('servizio non raggiungibile'); }
   const body = await r.json().catch(() => ({}));
-  if (!r.ok || body.error) throw new Error(body.error?.message || body.error_description || body.message || `risposta ${r.status}`);
+  if (!r.ok || body.error) throw new Error(body.error?.message || body.error_message || body.error_description || body.message || `risposta ${r.status}`);
   return body;
 }
 
@@ -160,6 +163,58 @@ export async function metaConfirm(id, { clientId, facebookPageId, instagramPageI
   return { saved, client: await store.getClient(client.id) };
 }
 
+// Instagram Login: l'account professionale (Business o Creator) accede con Instagram, senza Pagina Facebook.
+// Il token lungo dura 60 giorni e si rinnova da solo (freshConnection).
+
+const IG_SCOPES = 'instagram_business_basic,instagram_business_manage_insights';
+const IG_GRAPH = () => `https://graph.instagram.com/${graphVersion()}`;
+
+export async function instagramStart(req, res) {
+  const t = await startTarget(req);
+  if (refuse(res, t)) return;
+  if (!status().instagram.configured) return back(res, 'instagram-non-configurato', '', t.invite, t.remote);
+  sweep(pendingStates);
+  const state = token();
+  pendingStates.set(state, { platform: 'instagram', clientId: t.clientId, invite: t.invite, remote: t.remote, created: Date.now() });
+  const q = new URLSearchParams({ client_id: env('IG_APP_ID'), redirect_uri: instagramRedirect(), response_type: 'code', scope: IG_SCOPES, state });
+  res.redirect(303, `https://www.instagram.com/oauth/authorize?${q}`);
+}
+
+export async function instagramCallback(req, res) {
+  const entry = pendingStates.get(String(req.query.state || ''));
+  if (!entry || entry.platform !== 'instagram') return back(res, 'stato-non-valido');
+  pendingStates.delete(String(req.query.state));
+  if (req.query.error) return back(res, 'instagram-annullato', '', entry.invite, entry.remote);
+  try {
+    // Instagram aggiunge "#_" in fondo al codice.
+    const code = String(req.query.code || '').replace(/#_$/, '');
+    const short = await json('https://api.instagram.com/oauth/access_token', {
+      method: 'POST',
+      headers: { 'content-type': 'application/x-www-form-urlencoded' },
+      body: new URLSearchParams({ client_id: env('IG_APP_ID'), client_secret: env('IG_APP_SECRET'), grant_type: 'authorization_code', redirect_uri: instagramRedirect(), code }),
+    });
+    const long = await json(`https://graph.instagram.com/access_token?${new URLSearchParams({
+      grant_type: 'ig_exchange_token', client_secret: env('IG_APP_SECRET'), access_token: short.access_token,
+    })}`);
+    const me = await json(`${IG_GRAPH()}/me?${new URLSearchParams({ fields: 'user_id,username', access_token: long.access_token })}`);
+    const client = await store.getClient(entry.clientId);
+    if (!client) return back(res, 'cliente-non-trovato', '', entry.invite, entry.remote);
+    await store.setConnection(client.id, 'instagram', {
+      accountId: String(me.user_id || short.user_id), accessToken: long.access_token, accountLabel: me.username ? `@${me.username}` : null,
+      source: 'instagram-login', expiresAt: new Date(Date.now() + (long.expires_in || 60 * 24 * 3600) * 1000).toISOString(),
+    });
+    if (me.username && !client.handles.instagram) {
+      client.handles.instagram = `@${me.username}`;
+      await store.saveClient({ name: client.name, handles: client.handles }, client.id);
+    }
+    if (entry.invite) await store.markInviteUsed(entry.invite, 'instagram');
+    back(res, 'instagram-collegato', '', entry.invite, entry.remote);
+  } catch (e) {
+    console.error('OAuth Instagram non riuscito:', e.message);
+    back(res, 'instagram-errore', '', entry.invite, entry.remote);
+  }
+}
+
 // TikTok: Login Kit con PKCE. Con un redirect su localhost TikTok richiede il flusso "desktop".
 
 const TIKTOK_SCOPES = 'user.info.basic,user.info.stats,video.list';
@@ -225,6 +280,7 @@ export async function tiktokCallback(req, res) {
 // Il token TikTok dura 24 ore: lo si rinnova prima di leggere i dati, se c'è il refresh token.
 export async function freshConnection(client, platform) {
   const conn = client.connections?.[platform];
+  if (platform === 'instagram' && conn?.source === 'instagram-login') return freshInstagram(client, conn);
   if (platform !== 'tiktok' || !conn?.refreshToken || !conn.expiresAt) return conn;
   if (Date.parse(conn.expiresAt) - Date.now() > 5 * 60 * 1000) return conn;
   if (!status().tiktok.configured) return conn;
@@ -237,5 +293,18 @@ export async function freshConnection(client, platform) {
     const err = new Error(`TikTok: rinnovo del token non riuscito (${e.message}). Collega di nuovo l'account.`);
     err.platform = 'TikTok';
     throw err;
+  }
+}
+
+// Il token Instagram dura 60 giorni: si rinnova a meno di 10 giorni dalla scadenza (serve un token con almeno 24 ore).
+async function freshInstagram(client, conn) {
+  if (!conn.expiresAt || Date.parse(conn.expiresAt) - Date.now() > 10 * 24 * 3600 * 1000) return conn;
+  try {
+    const t = await json(`https://graph.instagram.com/refresh_access_token?${new URLSearchParams({ grant_type: 'ig_refresh_token', access_token: conn.accessToken })}`);
+    const next = { ...conn, accessToken: t.access_token, expiresAt: new Date(Date.now() + (t.expires_in || 60 * 24 * 3600) * 1000).toISOString() };
+    await store.setConnection(client.id, 'instagram', next);
+    return next;
+  } catch {
+    return conn; // se è ancora valido si legge lo stesso; a scadenza il connettore chiede di ricollegare
   }
 }

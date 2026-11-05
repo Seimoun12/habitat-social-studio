@@ -6,12 +6,16 @@ const day = new Intl.DateTimeFormat('it-IT', { day: 'numeric', month: 'long', ye
 
 const OUTCOME = {
   'meta-collegato': ['ok', 'Facebook e Instagram sono collegati. Grazie!'],
+  'instagram-collegato': ['ok', 'Instagram è collegato. Grazie!'],
   'tiktok-collegato': ['ok', 'TikTok è collegato. Grazie!'],
   'meta-annullato': ['info', "Hai annullato l'accesso a Facebook. Puoi riprovare quando vuoi."],
+  'instagram-annullato': ['info', "Hai annullato l'accesso a Instagram. Puoi riprovare quando vuoi."],
   'tiktok-annullato': ['info', "Hai annullato l'accesso a TikTok. Puoi riprovare quando vuoi."],
   'meta-errore': ['err', 'Il collegamento con Facebook non è riuscito. Riprova, e se succede ancora avvisa chi ti ha mandato il link.'],
+  'instagram-errore': ['err', 'Il collegamento con Instagram non è riuscito. Riprova, e se succede ancora avvisa chi ti ha mandato il link.'],
   'tiktok-errore': ['err', 'Il collegamento con TikTok non è riuscito. Riprova, e se succede ancora avvisa chi ti ha mandato il link.'],
   'meta-non-configurato': ['err', 'Il collegamento con Facebook non è ancora attivo. Avvisa chi ti ha mandato il link.'],
+  'instagram-non-configurato': ['err', 'Il collegamento con Instagram non è ancora attivo. Avvisa chi ti ha mandato il link.'],
   'tiktok-non-configurato': ['err', 'Il collegamento con TikTok non è ancora attivo. Avvisa chi ti ha mandato il link.'],
   'stato-non-valido': ['info', 'La richiesta è scaduta. Riprova dal pulsante qui sotto.'],
   'cliente-non-trovato': ['err', 'Questo link non corrisponde più a nessun profilo. Chiedi un link nuovo.'],
@@ -76,15 +80,16 @@ export function invitePage({ invite, client, status, outcome }) {
       <h2>${name}</h2>
       ${done ? '<p class="done">Collegato</p><p class="muted">Se serve, puoi rifare l\'accesso.</p>' : `<p class="muted">${help}</p>`}
       ${configured
-        ? `<a class="button${done ? ' outline' : ''}" href="${base.replace('%s', platformKey)}">${done ? 'Accedi di nuovo' : `Accedi con ${key === 'meta' ? 'Facebook' : 'TikTok'}`}</a>`
+        ? `<a class="button${done ? ' outline' : ''}" href="${base.replace('%s', platformKey)}">${done ? 'Accedi di nuovo' : `Accedi con ${{ meta: 'Facebook', instagram: 'Instagram', tiktok: 'TikTok' }[key]}`}</a>`
         : '<p class="muted">Non ancora attivo: avvisa chi ti ha mandato il link.</p>'}
     </section>`;
   };
   const cards = [
-    invite.platforms.includes('meta') && card('meta', 'Facebook e Instagram', 'Serve una Pagina Facebook. Per Instagram, un account professionale collegato a quella Pagina: li scegli dopo l\'accesso.', 'meta', status.meta.configured),
+    invite.platforms.includes('meta') && card('meta', 'Facebook e Instagram', 'Per chi ha una Pagina Facebook. Per Instagram, un account professionale collegato a quella Pagina: li scegli dopo l\'accesso.', 'meta', status.meta.configured),
+    invite.platforms.includes('instagram') && card('instagram', 'Instagram', 'Accedi con il tuo account Instagram professionale (Business o Creator). Non serve Facebook.', 'instagram', status.instagram.configured),
     invite.platforms.includes('tiktok') && card('tiktok', 'TikTok', 'Accedi con il profilo TikTok da collegare.', 'tiktok', status.tiktok.configured),
   ].filter(Boolean).join('');
-  const where = [invite.platforms.includes('meta') && 'Facebook', invite.platforms.includes('tiktok') && 'TikTok'].filter(Boolean).join(' o su ');
+  const where = [invite.platforms.includes('meta') && 'Facebook', invite.platforms.includes('instagram') && 'Instagram', invite.platforms.includes('tiktok') && 'TikTok'].filter(Boolean).join(' o su ');
   return page(`Collega i tuoi account · ${client.name}`, `
     <p class="eyebrow">${esc(client.name)}</p>
     <h1>Collega i tuoi account</h1>
